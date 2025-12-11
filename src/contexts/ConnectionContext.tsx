@@ -35,7 +35,7 @@ export const ConnectionProvider = ({ children }: { children: React.ReactNode }) 
     }
 
     try {
-      const res = await fetch("http://localhost:4012/api/generate-connection-code", {
+      const res = await fetch("https://networx-smtp.vercel.app/api/generate-connection-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,7 +73,7 @@ export const ConnectionProvider = ({ children }: { children: React.ReactNode }) 
     if (!uid) return null;
 
     try {
-      const res = await fetch("http://localhost:4012/api/verify-connection-code", {
+      const res = await fetch("https://networx-smtp.vercel.app/api/verify-connection-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, requestingUserId: uid }),

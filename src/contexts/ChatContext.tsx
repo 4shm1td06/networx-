@@ -17,7 +17,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             if (!user?.id) return;
 
             try {
-                const response = await fetch("http://localhost:4012/api/get-latest-code", {
+                const response = await fetch("https://networx-smtp.vercel.app/api/get-latest-code", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
