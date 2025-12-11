@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConnection } from "@/contexts/ConnectionContext";
-import UserHeader from "./Sidebar/UserHeader";
-import CodeCard from "./Sidebar/CodeCard";
-import SectionToggle from "./Sidebar/SectionToggle";
-import ConnectionsList from "./Sidebar/ConnectionsList";
+import UserHeader from "./sidebar/UserHeader";
+import CodeCard from "./sidebar/CodeCard";
+import SectionToggle from "./sidebar/SectionToggle";
+import ConnectionsList from "./sidebar/ConnectionsList";
 import CodeSettingsDialog from "./Dialogs/CodeSettingsDialog";
 import ChatView from "./ChatView";
 import ConnectDialog from "./Dialogs/ConnectDialog";
