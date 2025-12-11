@@ -1,63 +1,95 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useState } from "react";
 import { useAuth } from "./AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-export type Connection = {
-    id: string;
-    code: string;
-    verified: boolean;
-    created_at: string;
-    created_by: string;
+const ConnectionContext = createContext<any>(null);
+
+export const ConnectionProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+  const [currentCode, setCurrentCode] = useState<any>(null);
+
+  // Get UID from public table
+  const getPublicUserUID = async (email: string) => {
+    if (!email) return null;
+    const { data, error } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .single();
+
+    if (error) {
+      console.error("Error fetching UID from public table:", error);
+      return null;
+    }
+
+    return data?.id ?? null;
+  };
+
+  const generateConnectionCode = async () => {
+    if (!user || isLoading || !user.email) return null;
+
+    const uid = await getPublicUserUID(user.email);
+    if (!uid) {
+      console.error("❌ No UID found in public users table");
+      return null;
+    }
+
+    try {
+      const res = await fetch("http://localhost:4012/api/generate-connection-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: uid,
+          expirationMinutes: 15,
+          maxUses: 1,
+          isPermanent: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Backend error:", data);
+        return null;
+      }
+
+
+      setCurrentCode(data); // ✅ update currentCode so UI can read it
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const refreshCode = async () => {
+    setCurrentCode(null);
+    await generateConnectionCode();
+  };
+
+  const verifyConnectionCode = async (code: string) => {
+    if (!user || isLoading || !user.email) return null;
+
+    const uid = await getPublicUserUID(user.email);
+    if (!uid) return null;
+
+    try {
+      const res = await fetch("http://localhost:4012/api/verify-connection-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, requestingUserId: uid }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  return (
+    <ConnectionContext.Provider value={{ currentCode, generateConnectionCode, refreshCode, verifyConnectionCode }}>
+      {children}
+    </ConnectionContext.Provider>
+  );
 };
 
-type ConnectionContextType = {
-    connections: Connection[];
-    activeConnection: Connection | null;
-    setActiveConnection: (conn: Connection | null) => void;
-};
-
-const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
-
-export const ConnectionProvider = ({ children }: { children: ReactNode }) => {
-    const { user } = useAuth();
-    const [connections, setConnections] = useState<Connection[]>([]);
-    const [activeConnection, setActiveConnection] = useState<Connection | null>(null);
-
-    // Fetch connections when user changes
-    useEffect(() => {
-        const fetchConnections = async () => {
-            if (!user?.id) return; // safety check
-
-            try {
-                const { data, error } = await supabase
-                    .from("connections")
-                    .select("*")
-                    .eq("created_by", user.id)
-                    .order("created_at", { ascending: false });
-
-                if (error) {
-                    console.error("Supabase fetch error:", error.message);
-                    return;
-                }
-
-                if (data) setConnections(data);
-            } catch (err) {
-                console.error("Fetch connections error:", err);
-            }
-        };
-
-        fetchConnections();
-    }, [user]);
-
-    return (
-        <ConnectionContext.Provider value={{ connections, activeConnection, setActiveConnection }}>
-            {children}
-        </ConnectionContext.Provider>
-    );
-};
-
-export const useConnection = () => {
-    const context = useContext(ConnectionContext);
-    if (!context) throw new Error("useConnection must be used within ConnectionProvider");
-    return context;
-};
+export const useConnection = () => useContext(ConnectionContext);

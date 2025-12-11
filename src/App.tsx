@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ConnectionProvider } from "./contexts/ConnectionContext.tsx";
 import { ChatProvider } from "./contexts/ChatContext";
+import { UserProvider } from "./contexts/UserContext.tsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useIsMobile } from "./hooks/use-mobile";
 
@@ -30,6 +31,7 @@ const App = () => {
             <AuthProvider>
                 <ConnectionProvider>
                     <ChatProvider>
+                        <UserProvider>
                         <TooltipProvider>
                             <Toaster />
                             <Sonner />
@@ -125,6 +127,7 @@ const App = () => {
                                 )}
                             </BrowserRouter>
                         </TooltipProvider>
+                        </UserProvider>
                     </ChatProvider>
                 </ConnectionProvider>
             </AuthProvider>
