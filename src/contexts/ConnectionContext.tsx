@@ -11,7 +11,8 @@ export const ConnectionProvider = ({ children }: { children: React.ReactNode }) 
   const [messages, setMessages] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<any>(null);
 
-  const API_URL = "http://localhost:4012/api"; // backend for code generation only
+  const API_URL = "https://networx-smtp.vercel.app/api"
+  // const API_URL = "http://localhost:4012/api"; // backend for code generation only
 
   // ---------------------------
   // Generate connection code

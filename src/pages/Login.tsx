@@ -19,7 +19,8 @@ export default function AuthWithEmailOtp() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
-  const API_URL = "http://localhost:4012/api";
+  const API_URL = "https://networx-smtp.vercel.app/api"
+  // const API_URL = "http://localhost:4012/api";
 
   // =========================
   // Load user from DB + store in AuthContext

@@ -7,13 +7,16 @@ export default function ConnectDialog({ show, setShow }: { show: boolean; setSho
   const { createOrGetThread } = useChat();
   const { user } = useAuth();
 
+  const API_URL = "https://networx-smtp.vercel.app/api"
+  // const API_URL = "http://localhost:4012/api"
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
       // Verify code on backend (you already have verifyCode)
-      const res = await fetch("http://localhost:4012/api/verify-connection-code", {
+      const res = await fetch(`${API_URL}verify-connection-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, requestingUserId: user.id }),
