@@ -8,127 +8,126 @@
 ├── package.json
 ├── postcss.config.js
 ├── public
-│   ├── favicon.ico
-│   ├── manifest.json
-│   ├── placeholder.svg
-│   └── robots.txt
+│   ├── favicon.ico
+│   ├── manifest.json
+│   ├── placeholder.svg
+│   └── robots.txt
 ├── src
-│   ├── App.css
-│   ├── App.tsx
-│   ├── components
-│   │   ├── AdminPanel.tsx
-│   │   ├── ChatView.tsx
-│   │   ├── EnhancedAuth.tsx
-│   │   ├── ErrorBoundary.tsx
-│   │   ├── InterestsSelector.tsx
-│   │   ├── LoadingStates.tsx
-│   │   ├── MobileLayout.tsx
-│   │   ├── ProductionAuthFlow.tsx
-│   │   ├── ProtectedRoute.tsx
-│   │   ├── SecureAdminPanel.tsx
-│   │   └── ui
-│   │       ├── accordion.tsx
-│   │       ├── alert-dialog.tsx
-│   │       ├── alert.tsx
-│   │       ├── aspect-ratio.tsx
-│   │       ├── avatar.tsx
-│   │       ├── badge.tsx
-│   │       ├── breadcrumb.tsx
-│   │       ├── button.tsx
-│   │       ├── calendar.tsx
-│   │       ├── card.tsx
-│   │       ├── carousel.tsx
-│   │       ├── chart.tsx
-│   │       ├── checkbox.tsx
-│   │       ├── collapsible.tsx
-│   │       ├── command.tsx
-│   │       ├── context-menu.tsx
-│   │       ├── dialog.tsx
-│   │       ├── drawer.tsx
-│   │       ├── dropdown-menu.tsx
-│   │       ├── form.tsx
-│   │       ├── hover-card.tsx
-│   │       ├── input-otp.tsx
-│   │       ├── input.tsx
-│   │       ├── label.tsx
-│   │       ├── menubar.tsx
-│   │       ├── navigation-menu.tsx
-│   │       ├── pagination.tsx
-│   │       ├── popover.tsx
-│   │       ├── progress.tsx
-│   │       ├── radio-group.tsx
-│   │       ├── resizable.tsx
-│   │       ├── scroll-area.tsx
-│   │       ├── select.tsx
-│   │       ├── separator.tsx
-│   │       ├── sheet.tsx
-│   │       ├── sidebar.tsx
-│   │       ├── skeleton.tsx
-│   │       ├── slider.tsx
-│   │       ├── sonner.tsx
-│   │       ├── switch.tsx
-│   │       ├── table.tsx
-│   │       ├── tabs.tsx
-│   │       ├── textarea.tsx
-│   │       ├── toast.tsx
-│   │       ├── toaster.tsx
-│   │       ├── toggle-group.tsx
-│   │       ├── toggle.tsx
-│   │       ├── tooltip.tsx
-│   │       └── use-toast.ts
-│   ├── contexts
-│   │   ├── AuthContext.tsx
-│   │   ├── ChatContext.tsx
-│   │   └── ConnectionContext.tsx
-│   ├── hooks
-│   │   ├── use-mobile.tsx
-│   │   ├── use-toast.ts
-│   │   ├── useBackendServices.ts
-│   │   └── useRealTimeMessages.ts
-│   ├── index.css
-│   ├── integrations
-│   │   └── supabase
-│   │       ├── client.ts
-│   │       └── types.ts
-│   ├── lib
-│   │   ├── supabase.ts
-│   │   └── utils.ts
-│   ├── main.tsx
-│   ├── pages
-│   │   ├── Discovery.tsx
-│   │   ├── Home.tsx
-│   │   ├── Index.tsx
-│   │   ├── Login.tsx
-│   │   ├── NotFound.tsx
-│   │   ├── ProductionAuth.tsx
-│   │   ├── SecureAuth.tsx
-│   │   ├── Settings.tsx
-│   │   └── Signup.tsx
-│   ├── types
-│   │   ├── connection.ts
-│   │   └── user.ts
-│   ├── utils
-│   │   ├── security.ts
-│   │   └── validation.ts
-│   └── vite-env.d.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── components
+│   │   ├── AdminPanel.tsx
+│   │   ├── ChatView.tsx
+│   │   ├── EnhancedAuth.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── InterestsSelector.tsx
+│   │   ├── LoadingStates.tsx
+│   │   ├── MobileLayout.tsx
+│   │   ├── ProductionAuthFlow.tsx
+│   │   ├── ProtectedRoute.tsx
+│   │   ├── SecureAdminPanel.tsx
+│   │   ├── home
+│   │   │   ├── ChatView.tsx
+│   │   │   ├── Dialogs
+│   │   │   │   ├── CodeSettingsDialog.tsx
+│   │   │   │   └── ConnectDialog.tsx
+│   │   │   ├── Home.tsx
+│   │   │   ├── Home.txt
+│   │   │   └── sidebar
+│   │   │       ├── CodeCard.tsx
+│   │   │       ├── ConnectionsList.tsx
+│   │   │       ├── SectionToggle.tsx
+│   │   │       └── UserHeader.tsx
+│   │   └── ui
+│   │       ├── accordion.tsx
+│   │       ├── alert-dialog.tsx
+│   │       ├── alert.tsx
+│   │       ├── aspect-ratio.tsx
+│   │       ├── avatar.tsx
+│   │       ├── badge.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── calendar.tsx
+│   │       ├── card.tsx
+│   │       ├── carousel.tsx
+│   │       ├── chart.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── command.tsx
+│   │       ├── context-menu.tsx
+│   │       ├── dialog.tsx
+│   │       ├── drawer.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── form.tsx
+│   │       ├── hover-card.tsx
+│   │       ├── input-otp.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── menubar.tsx
+│   │       ├── navigation-menu.tsx
+│   │       ├── pagination.tsx
+│   │       ├── popover.tsx
+│   │       ├── progress.tsx
+│   │       ├── radio-group.tsx
+│   │       ├── resizable.tsx
+│   │       ├── scroll-area.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── slider.tsx
+│   │       ├── sonner.tsx
+│   │       ├── switch.tsx
+│   │       ├── table.tsx
+│   │       ├── tabs.tsx
+│   │       ├── textarea.tsx
+│   │       ├── toast.tsx
+│   │       ├── toaster.tsx
+│   │       ├── toggle-group.tsx
+│   │       ├── toggle.tsx
+│   │       ├── tooltip.tsx
+│   │       └── use-toast.ts
+│   ├── contexts
+│   │   ├── AuthContext.tsx
+│   │   ├── ChatContext.tsx
+│   │   ├── ConnectionContext.tsx
+│   │   └── UserContext.tsx
+│   ├── hooks
+│   │   ├── use-mobile.tsx
+│   │   ├── use-toast.ts
+│   │   ├── useBackendServices.ts
+│   │   └── useRealTimeMessages.ts
+│   ├── index.css
+│   ├── integrations
+│   │   └── supabase
+│   │       ├── client.ts
+│   │       └── types.ts
+│   ├── lib
+│   │   ├── supabase.ts
+│   │   └── utils.ts
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── Discovery.tsx
+│   │   ├── Index.tsx
+│   │   ├── Login.tsx
+│   │   ├── NotFound.tsx
+│   │   ├── ProductionAuth.tsx
+│   │   ├── SecureAuth.tsx
+│   │   ├── Settings.tsx
+│   │   └── Signup.tsx
+│   ├── types
+│   │   ├── connection.ts
+│   │   └── user.ts
+│   ├── utils
+│   │   ├── security.ts
+│   │   └── validation.ts
+│   └── vite-env.d.ts
 ├── structure.txt
 ├── supabase
-│   ├── config.toml
-│   └── functions
-│       ├── generate-connection-code
-│       │   └── index.ts
-│       ├── send-email-notification
-│       │   └── index.ts
-│       ├── send-sms-verification
-│       │   └── index.ts
-│       ├── validate-connection-code
-│       │   └── index.ts
-│       └── verify-phone-code
-│           └── index.ts
+│   └── config.toml
 ├── tailwind.config.ts
 ├── tsconfig.app.json
 ├── tsconfig.json
 ├── tsconfig.node.json
-└── vite.config.ts
-
-21 directories, 112 files
+└── vite.config.ts 

@@ -1,93 +1,52 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-type AuthContextType = {
-  user: any | null;  // includes uid from auth table
-  setUser: (user: any | null) => void;
-  isLoading: boolean;
-  logout: () => Promise<void>;
+type User = {
+  id?: string;
+  email: string;
+  name?: string;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+type AuthContextType = {
+  user: User | null;
+  setUser: (user: User | null) => void;
+  logout: () => void;
+};
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-  // Fetch UID from your auth table
-  const fetchUserUID = async (email: string) => {
-    const { data, error } = await supabase
-      .from("auth")       // your auth table name
-      .select("uid")      // UID column
-      .eq("email", email)
-      .single();
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
 
-    if (error) {
-      console.error("Error fetching UID:", error);
-      return null;
-    }
-    return data?.uid ?? null;
-  };
-
+  // Load user from localStorage on refresh
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        let currentUser = sessionData?.session?.user ?? null;
-
-        if (!currentUser) {
-          const { data: userData } = await supabase.auth.getUser();
-          currentUser = userData?.user ?? null;
-        }
-
-        if (currentUser?.email) {
-          const uid = await fetchUserUID(currentUser.email);
-          if (uid) {
-            setUser({ ...currentUser, uid }); // store UID from auth table
-            console.log("Logged in user:", { ...currentUser, uid });
-          } else {
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Auth load error:", err);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // Listen for auth changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const updatedUser = session?.user ?? null;
-      setUser(updatedUser);
-    });
-
-    return () => listener.subscription.unsubscribe();
+    const stored = localStorage.getItem("networx_user");
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
   }, []);
 
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-    } catch (err) {
-      console.error("Logout error:", err);
+  const saveUser = (user: User | null) => {
+    if (user) {
+      localStorage.setItem("networx_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("networx_user");
     }
+    setUser(user);
+  };
+
+  const logout = () => {
+    saveUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, isLoading, logout }}>
-      {!isLoading && children}
+    <AuthContext.Provider value={{ user, setUser: saveUser, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };

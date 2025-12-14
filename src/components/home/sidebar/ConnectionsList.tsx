@@ -1,46 +1,35 @@
-// src/components/home/Sidebar/ConnectionsList.tsx
 import React from "react";
-import { useConnection, Connection } from "@/contexts/ConnectionContext";
+import { useChat } from "@/contexts/ChatContext";
 
-type Props = {
-    activeSection: string;
-    activeConnection: Connection | null;
-    setActiveConnection: (conn: Connection) => void;
-};
+const ConnectionsList: React.FC = () => {
+  const { sidebarThreads, activeThread, setActiveThread } = useChat();
 
-const ConnectionsList: React.FC<Props> = ({ activeSection, activeConnection, setActiveConnection }) => {
-    const { connections } = useConnection();
+  if (!sidebarThreads || sidebarThreads.length === 0) {
+    return <p className="text-networx-light/50 p-4">No chats yet</p>;
+  }
 
-    // Filter connections by section (example)
-    const filteredConnections = connections?.filter((conn) => {
-        if (activeSection === "PERSONAL") return !conn.name.includes("Team");
-        if (activeSection === "TEAM") return conn.name.includes("Team");
-        return true;
-    }) ?? [];
-
-    if (!connections) {
-        return <p className="text-networx-light/50 p-4">Loading connections...</p>;
-    }
-
-    if (filteredConnections.length === 0) {
-        return <p className="text-networx-light/50 p-4">No connections available</p>;
-    }
-
-    return (
-        <ul className="overflow-y-auto flex-1">
-            {filteredConnections.map((conn) => (
-                <li
-                    key={conn.id}
-                    className={`p-2 cursor-pointer hover:bg-[#1B2440] ${
-                        activeConnection?.id === conn.id ? "bg-[#1B2440]" : ""
-                    }`}
-                    onClick={() => setActiveConnection(conn)}
-                >
-                    {conn.name}
-                </li>
-            ))}
-        </ul>
-    );
+  return (
+    <ul className="overflow-y-auto flex-1">
+      {sidebarThreads.map((t) => (
+        <li
+          key={t.id}
+          className={`p-3 cursor-pointer hover:bg-[#1B2440] ${
+            activeThread?.id === t.id ? "bg-[#1B2440]" : ""
+          } flex items-center gap-3`}
+          onClick={() => setActiveThread(t)} // ✅ FIX HERE
+        >
+          <img
+            src={t.profile || "/placeholder.svg"}
+            alt={t.name}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-medium">{t.name}</div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 };
 
 export default ConnectionsList;
