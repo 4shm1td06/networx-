@@ -17,7 +17,6 @@
 │   ├── App.tsx
 │   ├── components
 │   │   ├── AdminPanel.tsx
-│   │   ├── ChatView.tsx
 │   │   ├── EnhancedAuth.tsx
 │   │   ├── ErrorBoundary.tsx
 │   │   ├── InterestsSelector.tsx

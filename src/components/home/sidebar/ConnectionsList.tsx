@@ -1,7 +1,11 @@
 import React from "react";
 import { useChat } from "@/contexts/ChatContext";
 
-const ConnectionsList: React.FC = () => {
+interface ConnectionsListProps {
+  onThreadClick?: (threadId: string) => void;
+}
+
+const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
   const { sidebarThreads, activeThread, setActiveThread } = useChat();
 
   if (!sidebarThreads || sidebarThreads.length === 0) {
@@ -16,7 +20,10 @@ const ConnectionsList: React.FC = () => {
           className={`p-3 cursor-pointer hover:bg-networx-primary/70 ${
             activeThread?.id === t.id ? "bg-networx-primary" : ""
           } flex items-center gap-3`}
-          onClick={() => setActiveThread(t)} // ✅ FIX HERE
+          onClick={() => {
+            setActiveThread(t); // always set active thread
+            if (onThreadClick) onThreadClick(t.id); // overlay for mobile
+          }}
         >
           <img
             src={t.profile || "/placeholder.svg"}
