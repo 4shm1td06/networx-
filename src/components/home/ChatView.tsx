@@ -6,8 +6,10 @@ import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { Send, Check, CheckCheck, Paperclip} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
 
 /* ===================== DATE HELPERS ===================== */
 const isSameDay = (a: Date, b: Date) =>
@@ -40,6 +42,8 @@ type ChatViewProps = {
 
 const ChatView = ({ connectionId, otherUserId, name, profile_image }: ChatViewProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const {
     activeThread,
     setActiveThread,
@@ -126,6 +130,8 @@ const ChatView = ({ connectionId, otherUserId, name, profile_image }: ChatViewPr
 
       {/* HEADER */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#161922] border-b border-white/5">
+       
+
         <Avatar className="h-9 w-9">
           {profile_image ? (
             <AvatarImage src={profile_image} />

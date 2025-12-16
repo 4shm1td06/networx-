@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import ChatView from '@/components/home/ChatView';
+import UserHeader from './home/sidebar/UserHeader';
 import CodeCard from './home/sidebar/CodeCard';
 import ConnectionsList from '@/components/home/sidebar/ConnectionsList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -101,6 +102,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       <main className="flex-1 relative overflow-hidden">
         {isMobile ? (
           <div className="flex flex-col h-full w-full">
+            {/* User Header */}
+            <UserHeader />
              {/* Code Card  */}
               <CodeCard />
 
