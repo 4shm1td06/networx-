@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Ticket } from "lucide-react";
+import { User, Building } from "lucide-react";
 
 const SectionToggle = ({ activeSection, setActiveSection }) => {
     return (
@@ -17,7 +17,7 @@ const SectionToggle = ({ activeSection, setActiveSection }) => {
                 onClick={() => setActiveSection("INDUSTRY")}
             >
                 <div className="flex items-center justify-center gap-2">
-                    <Ticket size={16} /> Industry/Perks
+                    <Building size={16} /> Work
                 </div>
             </button>
         </div>

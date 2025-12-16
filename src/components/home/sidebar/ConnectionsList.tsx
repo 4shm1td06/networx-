@@ -13,8 +13,8 @@ const ConnectionsList: React.FC = () => {
       {sidebarThreads.map((t) => (
         <li
           key={t.id}
-          className={`p-3 cursor-pointer hover:bg-[#1B2440] ${
-            activeThread?.id === t.id ? "bg-[#1B2440]" : ""
+          className={`p-3 cursor-pointer hover:bg-networx-primary/70 ${
+            activeThread?.id === t.id ? "bg-networx-primary" : ""
           } flex items-center gap-3`}
           onClick={() => setActiveThread(t)} // ✅ FIX HERE
         >

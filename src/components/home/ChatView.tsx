@@ -1,12 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
+// ChatView.tsx
+// THEME-LOCKED VERSION (Grey + Red, no gradients, consistent everywhere)
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, User, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { Send, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/* ===================== DATE HELPERS ===================== */
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const getDayLabel = (date: Date) => {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (isSameDay(date, today)) return 'Today';
+  if (isSameDay(date, yesterday)) return 'Yesterday';
+
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+/* ===================== TYPES ===================== */
 type ChatViewProps = {
   connectionId?: string;
   otherUserId?: string;
@@ -29,130 +53,137 @@ const ChatView = ({ connectionId, otherUserId, name, profile_image }: ChatViewPr
 
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const typingTimeout = useRef<any>(null);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
 
-  /* ---------------- AUTO SCROLL ---------------- */
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const isOnline = otherUserId ? onlineUsers.includes(otherUserId) : false;
 
-  /* ---------------- SET ACTIVE THREAD ---------------- */
+  /* ===================== ENSURE THREAD ===================== */
   useEffect(() => {
-    if (!activeThread && connectionId) {
+    if (!activeThread && connectionId && user?.id && otherUserId) {
       setActiveThread({
         id: connectionId,
-        user1: user?.id || '',
-        user2: otherUserId || '',
+        user1: user.id,
+        user2: otherUserId,
         created_at: new Date().toISOString(),
       });
     }
   }, [connectionId, activeThread, setActiveThread, user?.id, otherUserId]);
 
-  /* ---------------- SEND MESSAGE ---------------- */
+  /* ===================== AUTOSCROLL ===================== */
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  /* ===================== SEND ===================== */
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim()) return;
 
-    if (!activeThread?.id && otherUserId) {
-      const t = await sendMessage(messageInput, otherUserId);
-      if (t) setActiveThread(t);
-    } else {
-      await sendMessage(messageInput);
-    }
+    await sendMessage(messageInput, otherUserId);
+    setMessageInput('');
 
     sendTyping(false);
-    setMessageInput('');
+    isTypingRef.current = false;
   };
 
-  /* ---------------- TYPING HANDLER ---------------- */
+  /* ===================== TYPING ===================== */
   const handleTyping = (val: string) => {
     setMessageInput(val);
-    sendTyping(true);
+
+    if (!isTypingRef.current) {
+      sendTyping(true);
+      isTypingRef.current = true;
+    }
 
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => sendTyping(false), 800);
+    typingTimeout.current = setTimeout(() => {
+      sendTyping(false);
+      isTypingRef.current = false;
+    }, 800);
   };
 
+  /* ===================== DATE GROUPING ===================== */
+  const groupedMessages = useMemo(() => {
+    const result: any[] = [];
+    let lastDate: string | null = null;
+
+    messages.forEach((m) => {
+      const date = new Date(m.created_at).toDateString();
+      if (date !== lastDate) {
+        result.push({ type: 'date', date: new Date(m.created_at) });
+        lastDate = date;
+      }
+      result.push({ type: 'msg', data: m });
+    });
+
+    return result;
+  }, [messages]);
+
+  /* ===================== UI ===================== */
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* ================= HEADER ================= */}
-      <div className="flex items-center gap-3 p-4 bg-white shadow-sm">
-        <Avatar>
+    <div className="flex flex-col h-full bg-[#0f1115] text-slate-200">
+
+      {/* HEADER */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-[#161922] border-b border-white/5">
+        <Avatar className="h-9 w-9">
           {profile_image ? (
             <AvatarImage src={profile_image} />
           ) : (
-            <AvatarFallback>{name?.[0]}</AvatarFallback>
+            <AvatarFallback className="bg-red-600 text-white">
+              {name?.[0] || 'U'}
+            </AvatarFallback>
           )}
         </Avatar>
-        <div>
-          <p className="font-semibold">{name || 'User'}</p>
-          <p className={`text-xs ${onlineUsers.includes(otherUserId) ? 'text-green-600' : 'text-slate-400'}`}>
-            {onlineUsers.includes(otherUserId) ? 'Online' : 'Offline'}
-          </p>
+
+        <div className="flex flex-col">
+          <p className="text-sm font-medium text-slate-100">{name || 'User'}</p>
+          <div className="flex items-center gap-2 text-xs">
+            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-slate-500'}`} />
+            <span className={isOnline ? 'text-green-500' : 'text-slate-500'}>
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ================= MESSAGES ================= */}
+      {/* MESSAGES */}
       <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-2"
-        onScroll={(e) => {
-          if (e.currentTarget.scrollTop === 0) loadOlder();
-        }}
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-3 scrollbar-thin scrollbar-thumb-white/10"
+        onScroll={(e) => e.currentTarget.scrollTop === 0 && loadOlder()}
       >
         <AnimatePresence>
-          {messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              className="flex flex-col items-center justify-center h-full"
-            >
-              <User size={42} className="text-green-500 mb-2" />
-              <p className="text-sm text-green-700">Start your conversation</p>
-            </motion.div>
-          )}
+          {groupedMessages.map((item, i) => {
+            if (item.type === 'date') {
+              return (
+                <div key={`date-${i}`} className="flex justify-center my-4">
+                  <span className="text-xs px-3 py-1 rounded-full bg-[#1c1f2a] text-slate-400 border border-white/5">
+                    {getDayLabel(item.date)}
+                  </span>
+                </div>
+              );
+            }
 
-          {messages.map((m) => {
+            const m = item.data;
             const isOwn = m.sender_id === user?.id;
+
             return (
               <motion.div
                 key={m.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${
-                    isOwn
-                      ? 'bg-green-500 text-white rounded-br-sm'
-                      : 'bg-white rounded-bl-sm'
-                  }`}
-                >
-                  {/* CONTENT */}
-                  {m.content && <p className="text-sm">{m.content}</p>}
-
-                  {/* ATTACHMENT (READY) */}
-                  {m.attachment_type === 'image' && (
-                    <img src={m.attachment_url} className="mt-2 rounded-lg max-w-xs" />
-                  )}
-
-                  {m.attachment_type === 'file' && (
-                    <a
-                      href={m.attachment_url}
-                      target="_blank"
-                      className="underline text-sm"
-                    >
-                      Download file
-                    </a>
-                  )}
-
-                  {/* META */}
-                  <div
-                    className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-                      isOwn ? 'text-white/70' : 'text-slate-400'
+                  className={`max-w-[72%] px-4 py-2 rounded-2xl text-sm leading-relaxed border shadow-sm
+                    ${isOwn
+                      ? 'bg-red-600 text-white border-red-700 rounded-br-sm'
+                      : 'bg-[#2a2e38] text-slate-200 border-white/10 rounded-bl-sm'
                     }`}
-                  >
+                >
+                  <p>{m.content}</p>
+
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-70">
                     <span>
                       {new Date(m.created_at).toLocaleTimeString([], {
                         hour: '2-digit',
@@ -167,25 +198,35 @@ const ChatView = ({ connectionId, otherUserId, name, profile_image }: ChatViewPr
           })}
         </AnimatePresence>
 
-        {typing && <p className="text-xs text-green-600 px-2">Typing…</p>}
+        {typing?.[activeThread?.id ?? ''] && (
+          <p className="text-xs text-slate-400 italic px-2">typing…</p>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ================= INPUT ================= */}
+      {/* INPUT */}
       <form
         onSubmit={handleSendMessage}
-        className="p-4 bg-white flex items-center gap-2 shadow-lg"
+        className="flex items-center gap-2 px-4 py-3 bg-[#161922] border-t border-white/5"
       >
-        <Button type="button" size="icon" variant="ghost">
+        <Button type="button" size="icon" variant="ghost" className="text-slate-400">
           <Paperclip size={16} />
         </Button>
+
         <Input
           value={messageInput}
           onChange={(e) => handleTyping(e.target.value)}
-          placeholder="Type a message…"
-          className="rounded-full px-4"
+          placeholder="Message…"
+          className="flex-1 bg-[#0f1115] border border-white/10 rounded-full px-5 text-sm focus-visible:ring-2 focus-visible:ring-red-600"
         />
-        <Button type="submit" size="icon" className="rounded-full" disabled={!messageInput.trim()}>
+
+        <Button
+          type="submit"
+          size="icon"
+          className="rounded-full bg-red-600 hover:bg-red-700 active:scale-95 transition"
+          disabled={!messageInput.trim()}
+        >
           <Send size={16} />
         </Button>
       </form>
