@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import ChatView from '@/components/home/ChatView';
+import CodeCard from './home/sidebar/CodeCard';
 import ConnectionsList from '@/components/home/sidebar/ConnectionsList';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -99,14 +100,16 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       {/* MAIN CONTENT */}
       <main className="flex-1 relative overflow-hidden">
         {isMobile ? (
-          <div className="flex h-full">
+          <div className="flex flex-col h-full w-full">
+             {/* Code Card  */}
+              <CodeCard />
+
             {/* DM LIST */}
             <ConnectionsList onThreadClick={(id) => setOverlayThreadId(id)} />
-
+             
             {/* Chat overlay */}
             {overlayThreadId && (
               <div className="absolute top-0 left-0 w-full h-full z-50 bg-networx-dark transition-transform duration-300">
-                
 
                 {/* ChatView */}
                 <ChatView threadId={overlayThreadId} />

@@ -2,7 +2,7 @@ import React from "react";
 import { useChat } from "@/contexts/ChatContext";
 
 interface ConnectionsListProps {
-  onThreadClick?: (threadId: string) => void;
+  onThreadClick?: (threadId: string) => void; // optional overlay for mobile
 }
 
 const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
@@ -22,7 +22,7 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
           } flex items-center gap-3`}
           onClick={() => {
             setActiveThread(t); // always set active thread
-            if (onThreadClick) onThreadClick(t.id); // overlay for mobile
+            if (onThreadClick) onThreadClick(t.id); // open overlay on mobile
           }}
         >
           <img
