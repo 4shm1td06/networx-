@@ -10,7 +10,6 @@ import { Send, Check, CheckCheck, Paperclip} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
-
 /* ===================== DATE HELPERS ===================== */
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&

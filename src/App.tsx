@@ -72,6 +72,14 @@ const App = () => {
       window.removeEventListener("online", handleOnline);
     };
   }, []);
+  // 🔔 ask permission
+  useEffect(() => {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}, []);
+
+
 
   return (
     <QueryClientProvider client={queryClient}>
