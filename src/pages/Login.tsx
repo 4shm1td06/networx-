@@ -1,11 +1,15 @@
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Lock, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+
+// Vanta
+import * as THREE from "three";
+// @ts-ignore
+import GLOBE from "vanta/dist/vanta.globe.min";
 
 type Step = "email" | "password" | "otp" | "setPassword";
 
@@ -15,53 +19,101 @@ export default function AuthWithEmailOtp() {
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
+  const [checkingLogin, setCheckingLogin] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const vantaRef = useRef<HTMLDivElement>(null);
+  const [vantaEffect, setVantaEffect] = useState<any>(null);
 
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
-  const API_URL = "https://networx-smtp.vercel.app/api"
-  // const API_URL = "http://localhost:4012/api";
+  const API_URL = "https://networx-smtp.vercel.app/api";
 
-  // =========================
-  // Load user from DB + store in AuthContext
-  // =========================
-  const loadUserAndLogin = async (email: string) => {
-    console.log("[Auth] Loading user from DB:", email);
-
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, email")
-      .eq("email", email)
-      .single();
-
-    if (error || !data) {
-      console.error("[Auth] Failed to load user:", error);
-      throw new Error("User record not found");
+  // ======================
+  // VANTA BACKGROUND
+  // ======================
+  useEffect(() => {
+    if (!vantaEffect && vantaRef.current) {
+      setVantaEffect(
+        GLOBE({
+          el: vantaRef.current,
+          THREE,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          color: 0xff3f81,
+          backgroundColor: 0x0b1120,
+          size: 0.8,
+        })
+      );
     }
+    return () => vantaEffect && vantaEffect.destroy();
+  }, [vantaEffect]);
 
-    console.log("[Auth] User loaded:", data);
+  // ======================
+  // RESET FEEDBACK ON STEP CHANGE
+  // ======================
+  useEffect(() => {
+    setError(null);
+    setSuccess(null);
+  }, [step]);
 
-    setUser({
-      id: data.id,
-      email: data.email,
-    });
+  // ======================
+  // AUTO LOGIN CHECK
+  // ======================
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const res = await fetch(`${API_URL}/me`, { credentials: "include" });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setUser(data.user);
+        navigate("/home", { replace: true });
+      } catch {
+        // Not logged in
+      } finally {
+        setCheckingLogin(false);
+      }
+    };
+    checkUser();
+  }, []);
+
+  if (checkingLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B1120]">
+        <Loader2 className="animate-spin w-8 h-8 text-indigo-500" />
+      </div>
+    );
+  }
+
+  // ======================
+  // HELPERS
+  // ======================
+  const fetchCurrentUser = async () => {
+    const res = await fetch(`${API_URL}/me`, { credentials: "include" });
+    if (!res.ok) throw new Error("Auth failed");
+    const data = await res.json();
+    setUser(data.user);
   };
 
-  // =========================
-  // Step 1: Check email
-  // =========================
+  // ======================
+  // HANDLERS
+  // ======================
   const handleCheckEmail = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-
     setLoading(true);
+    setError(null);
+
     try {
       const res = await fetch(`${API_URL}/check-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email }),
       });
-
       const data = await res.json();
 
       if (data.exists) {
@@ -70,137 +122,161 @@ export default function AuthWithEmailOtp() {
         await fetch(`${API_URL}/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ email }),
         });
-        alert("✅ OTP sent to your email");
+        setSuccess("OTP sent to your email");
         setStep("otp");
       }
-    } catch (err: any) {
-      alert("Server error: " + err.message);
+    } catch {
+      setError("Unable to connect to server");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // Step 2: Login existing user
-  // =========================
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
+      if (!data.success) throw new Error(data.error);
 
-      if (!data.success) {
-        alert(data.error || "Invalid credentials");
-        return;
-      }
-
-      await loadUserAndLogin(email);
-      navigate("/home");
-    } catch (err: any) {
-      alert("Login failed: " + err.message);
+      await fetchCurrentUser();
+      navigate("/home", { replace: true });
+    } catch {
+      setError("Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // Step 3: Verify OTP
-  // =========================
   const handleVerifyOtp = async (e: FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 6) return alert("Enter valid 6-digit OTP");
-
     setLoading(true);
+    setError(null);
+
     try {
       const res = await fetch(`${API_URL}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, otp }),
       });
-
       const data = await res.json();
+      if (!data.success) throw new Error();
 
-      if (data.success) {
-        alert("✅ Email verified");
-        setStep("setPassword");
-      } else {
-        alert(data.error || "Invalid OTP");
-      }
-    } catch (err: any) {
-      alert("Server error: " + err.message);
+      setSuccess("Email verified successfully");
+      setStep("setPassword");
+    } catch {
+      setError("Invalid or expired OTP");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // Step 4: Set password (new user)
-  // =========================
   const handleSetPassword = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`${API_URL}/set-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
+      if (!data.success) throw new Error();
 
-      if (!data.success) {
-        alert(data.error || "Registration failed");
-        return;
-      }
-
-      await loadUserAndLogin(email);
-      navigate("/home");
-    } catch (err: any) {
-      alert("Server error: " + err.message);
+      await fetchCurrentUser();
+      navigate("/home", { replace: true });
+    } catch {
+      setError("Failed to complete signup");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // UI
-  // =========================
+  // ======================
+  // UI CONFIG
+  // ======================
+  const icons = {
+    email: <Mail className="w-8 h-8 text-indigo-500" />,
+    password: <Lock className="w-8 h-8 text-indigo-500" />,
+    otp: <ShieldCheck className="w-8 h-8 text-indigo-500" />,
+    setPassword: <Lock className="w-8 h-8 text-indigo-500" />,
+  };
+
+  const titles = {
+    email: "Welcome to Networx",
+    password: "Secure Login",
+    otp: "Verify Your Email",
+    setPassword: "Create Password",
+  };
+
+  const subtitles = {
+    email: "Enter your email to continue",
+    password: "Enter your password",
+    otp: "Enter the 6-digit code sent to you",
+    setPassword: "Choose a strong password",
+  };
+
+  // ======================
+  // RENDER
+  // ======================
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            {step === "email"
-              ? "Welcome to Networx"
-              : step === "password"
-              ? "Login"
-              : step === "otp"
-              ? "Verify Email"
-              : "Set Password"}
-          </CardTitle>
+    <div ref={vantaRef} className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md backdrop-blur-xl bg-gray-900/80 border border-gray-700 shadow-[0_0_40px_rgba(99,102,241,0.15)] text-gray-100">
+        {/* STEP INDICATOR */}
+        <div className="flex justify-center gap-2 pt-4">
+          {["email", "otp", "setPassword", "password"].map((s) => (
+            <div
+              key={s}
+              className={`h-2 w-10 rounded-full ${
+                step === s ? "bg-indigo-500" : "bg-gray-700"
+              }`}
+            />
+          ))}
+        </div>
+
+        <CardHeader className="text-center space-y-2">
+          <div className="flex justify-center">{icons[step]}</div>
+          <CardTitle className="text-2xl font-bold">{titles[step]}</CardTitle>
+          <p className="text-sm text-gray-400">{subtitles[step]}</p>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-3 py-2 rounded-md text-sm">
+              {success}
+            </div>
+          )}
+
           {step === "email" && (
             <form onSubmit={handleCheckEmail} className="space-y-4">
               <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <Button className="w-full" disabled={loading}>
+              <Button className="w-full bg-indigo-600" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" /> : "Continue"}
               </Button>
             </form>
@@ -215,7 +291,7 @@ export default function AuthWithEmailOtp() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Button className="w-full" disabled={loading}>
+              <Button className="w-full bg-indigo-600" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" /> : "Login"}
               </Button>
             </form>
@@ -224,14 +300,15 @@ export default function AuthWithEmailOtp() {
           {step === "otp" && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <Input
-                placeholder="Enter OTP"
                 maxLength={6}
+                className="text-center tracking-[0.6em] text-lg font-mono"
+                placeholder="______"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 required
               />
-              <Button className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Verify OTP"}
+              <Button className="w-full bg-indigo-600" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" /> : "Verify"}
               </Button>
             </form>
           )}
@@ -240,15 +317,31 @@ export default function AuthWithEmailOtp() {
             <form onSubmit={handleSetPassword} className="space-y-4">
               <Input
                 type="password"
-                placeholder="Set password"
+                placeholder="Create password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Button className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Register & Login"}
+              <p className="text-xs text-gray-500">
+                Minimum 8 characters recommended
+              </p>
+              <Button className="w-full bg-indigo-600" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" /> : "Finish"}
               </Button>
             </form>
+          )}
+
+          {step !== "email" && (
+            <button
+              className="text-xs text-indigo-400 hover:underline w-full text-center"
+              onClick={() => {
+                setStep("email");
+                setOtp("");
+                setPassword("");
+              }}
+            >
+              Change email
+            </button>
           )}
         </CardContent>
       </Card>

@@ -56,10 +56,20 @@ export default function UserHeader({
   // =========================
   // Logout
   // =========================
-  const handleLogout = () => {
-    logout(); // clears context + localStorage
+  const handleLogout = async () => {
+  try {
+    await fetch("https://networx-smtp.vercel.app/api/logout", {
+      method: "POST",
+      credentials: "include", // 🔥 REQUIRED
+    });
+  } catch (err) {
+    console.error("Logout failed:", err);
+  } finally {
+    logout(); // clear context
     window.location.href = "/login";
-  };
+  }
+};
+
 
   // =========================
   // UI
