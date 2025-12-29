@@ -156,7 +156,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           const msg = payload.new as DMMessage;
 
           //ignore message sent by me
-          if(msg.sender_id==user.id) return;
+          if(msg.receiver_id!==user.id) return;
 
           //check if chat is open
           const isChatOpen = activeThread?.id === msg.thread_id;
