@@ -55,7 +55,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
   const startCall = async (toUserId: string, video: boolean) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video,
+      video: true,
     });
 
     setLocalStream(stream);
@@ -77,7 +77,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: video, // 
+      video: true, // 
     });
 
     setLocalStream(stream);
@@ -170,3 +170,4 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useCall = () => useContext(CallContext);
+
