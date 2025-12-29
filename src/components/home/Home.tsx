@@ -21,7 +21,7 @@ const Home = () => {
   const [showCodeSettings, setShowCodeSettings] = useState(false);
   const [showConnectDialog, setShowConnectDialog] = useState(false);
 
-  // ⛔ Don’t render until connection state known
+  // ⛔ wait until connection state is ready
   if (loading) return null;
 
   return (
@@ -53,20 +53,8 @@ const Home = () => {
         {activeThread ? (
           <ChatView />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full bg-networx-dark text-center">
-            <p className="mt-2 text-networx-light/70 max-w-md">
-              Choose a conversation or share your connection code.
-            </p>
-
-            {/* ✅ Show connect ONLY if user has NO connections */}
-            {!hasConnections && (
-              <button
-                onClick={() => setShowConnectDialog(true)}
-                className="mt-4 px-4 py-2 bg-primary rounded"
-              >
-                New Connection
-              </button>
-            )}
+          <div className="flex items-center justify-center h-full text-slate-400">
+            Select a chat to start messaging
           </div>
         )}
       </div>
@@ -79,7 +67,6 @@ const Home = () => {
         setShow={setShowCodeSettings}
       />
 
-      {/* ❌ Dialog will NEVER reopen after first connection */}
       {!hasConnections && (
         <ConnectDialog
           show={showConnectDialog}

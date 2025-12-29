@@ -1,96 +1,117 @@
-// src/App.tsx
 import { useEffect } from "react";
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { ConnectionProvider } from "./contexts/ConnectionContext";
 import { ChatProvider } from "./contexts/ChatContext";
+import { CallProvider } from "./contexts/CallContext";
 import { UserProvider } from "./contexts/UserContext";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useIsMobile } from "./hooks/use-mobile";
 
-// ✅ PWA Service Worker
-import { registerSW } from "virtual:pwa-register";
-
-// ✅ Pages
 import Login from "./pages/Login";
 import Home from "./components/home/Home";
 import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import AdminPanel from "./components/AdminPanel";
-import MobileLayout from "./components/MobileLayout";
 import Discovery from "./pages/Discovery";
+import AdminPanel from "./components/AdminPanel";
+import NotFound from "./pages/NotFound";
+import MobileLayout from "./components/MobileLayout";
 
-// =======================
-// 🔥 PWA REGISTRATION
-// =======================
-registerSW({
-  immediate: true,
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 
-  onOfflineReady() {
-    console.log("✅ PWA ready to work offline");
-  },
+import { registerSW } from "virtual:pwa-register";
 
-  onNeedRefresh() {
-    console.log("🔄 New version available — refresh to update");
-  },
-});
+registerSW({ immediate: true });
 
-// =======================
-// REACT QUERY CLIENT
-// =======================
 const queryClient = new QueryClient();
 
 const App = () => {
   const isMobile = useIsMobile();
 
-  // ✅ Detect standalone PWA mode
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone;
 
-  // ✅ Online / Offline detection
   useEffect(() => {
-    const handleOffline = () => {
-      console.warn("⚠️ You are offline");
-    };
-
-    const handleOnline = () => {
-      console.log("✅ Back online");
-    };
-
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
-    };
+    window.addEventListener("online", () =>
+      console.log("✅ Back online")
+    );
+    window.addEventListener("offline", () =>
+      console.warn("⚠️ Offline")
+    );
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ConnectionProvider>
-          <ChatProvider>
-            <UserProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
+          <CallProvider>
+            <ChatProvider>
+              <UserProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
 
-                <BrowserRouter>
-                  {isMobile ? (
-                    <MobileLayout>
+                  <BrowserRouter>
+                    {isMobile ? (
+                      <MobileLayout>
+                        <Routes>
+                          <Route path="/login" element={<Login />} />
+
+                          <Route
+                            path="/home"
+                            element={
+                              <ProtectedRoute>
+                                <Home />
+                              </ProtectedRoute>
+                            }
+                          />
+
+                          <Route
+                            path="/discovery"
+                            element={
+                              <ProtectedRoute>
+                                <Discovery />
+                              </ProtectedRoute>
+                            }
+                          />
+
+                          <Route
+                            path="/settings"
+                            element={
+                              <ProtectedRoute>
+                                <Settings />
+                              </ProtectedRoute>
+                            }
+                          />
+
+                          <Route
+                            path="/admin"
+                            element={
+                              <ProtectedRoute>
+                                <AdminPanel />
+                              </ProtectedRoute>
+                            }
+                          />
+
+                          <Route
+                            path="/"
+                            element={
+                              <Navigate to={isStandalone ? "/home" : "/login"} />
+                            }
+                          />
+
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </MobileLayout>
+                    ) : (
                       <Routes>
-                        {/* Public */}
                         <Route path="/login" element={<Login />} />
 
-                        {/* Protected */}
                         <Route
                           path="/home"
                           element={
@@ -127,82 +148,21 @@ const App = () => {
                           }
                         />
 
-                        {/* Root behavior */}
                         <Route
                           path="/"
                           element={
-                            isStandalone ? (
-                              <Navigate to="/home" />
-                            ) : (
-                              <Navigate to="/login" />
-                            )
+                            <Navigate to={isStandalone ? "/home" : "/login"} />
                           }
                         />
 
                         <Route path="*" element={<NotFound />} />
                       </Routes>
-                    </MobileLayout>
-                  ) : (
-                    <Routes>
-                      {/* Public */}
-                      <Route path="/login" element={<Login />} />
-
-                      {/* Protected */}
-                      <Route
-                        path="/home"
-                        element={
-                          <ProtectedRoute>
-                            <Home />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      <Route
-                        path="/discovery"
-                        element={
-                          <ProtectedRoute>
-                            <Discovery />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      <Route
-                        path="/settings"
-                        element={
-                          <ProtectedRoute>
-                            <Settings />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      <Route
-                        path="/admin"
-                        element={
-                          <ProtectedRoute>
-                            <AdminPanel />
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      {/* Root behavior */}
-                      <Route
-                        path="/"
-                        element={
-                          isStandalone ? (
-                            <Navigate to="/home" />
-                          ) : (
-                            <Navigate to="/login" />
-                          )
-                        }
-                      />
-
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  )}
-                </BrowserRouter>
-              </TooltipProvider>
-            </UserProvider>
-          </ChatProvider>
+                    )}
+                  </BrowserRouter>
+                </TooltipProvider>
+              </UserProvider>
+            </ChatProvider>
+          </CallProvider>
         </ConnectionProvider>
       </AuthProvider>
     </QueryClientProvider>

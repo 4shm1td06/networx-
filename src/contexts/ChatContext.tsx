@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
@@ -47,10 +41,7 @@ type ChatContextType = {
   typing: boolean;
   onlineUsers: string[];
   setActiveThread: (t: DMThread) => void;
-  sendMessage: (
-    content?: string,
-    attachment?: { url: string; type: "image" | "file" }
-  ) => Promise<DMMessage | undefined>;
+  sendMessage: (content?: string, attachment?: { url: string; type: "image" | "file" }) => Promise<DMMessage | undefined>;
   sendTyping: (state: boolean) => void;
   createOrGetThread: (otherUserId: string) => Promise<DMThread | null>;
   loadOlder: () => Promise<void>;
@@ -71,37 +62,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [oldestMessage, setOldestMessage] = useState<string | null>(null);
 
-  /* ===================== MARK AS READ ===================== */
-  const markThreadAsRead = async (threadId: string) => {
-    if (!user?.id) return;
-
-    const { error } = await supabase
-      .from("dm_messages")
-      .update({ is_read: true })
-      .eq("thread_id", threadId)
-      .eq("receiver_id", user.id)
-      .eq("is_read", false);
-
-    if (error) {
-      console.error("Mark read failed:", error);
-      return;
-    }
-
-    // Sidebar update
-    setSidebarThreads((prev) =>
-      prev.map((t) =>
-        t.id === threadId ? { ...t, unreadCount: 0 } : t
-      )
-    );
-
-    // Message list update
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.receiver_id === user.id ? { ...m, is_read: true } : m
-      )
-    );
-  };
-
   /* ===================== FETCH THREADS ===================== */
   useEffect(() => {
     if (!user?.id) return;
@@ -113,24 +73,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       .order("created_at", { ascending: false })
       .then(async ({ data }) => {
         if (!data) return;
-
         setThreads(data);
 
-        const otherUserIds = data.map((t) =>
-          t.user1 === user.id ? t.user2 : t.user1
-        );
-
+        // Build sidebar with lastMessage & unreadCount
+        const otherUserIds = data.map((t) => (t.user1 === user.id ? t.user2 : t.user1));
         const { data: users } = await supabase
           .from("users")
           .select("id, name, profile_image")
           .in("id", otherUserIds);
 
         const sidebar: SidebarThread[] = [];
-
         for (const t of data) {
           const otherUserId = t.user1 === user.id ? t.user2 : t.user1;
           const profile = users?.find((u) => u.id === otherUserId);
 
+          // Last message
           const { data: lastMsg } = await supabase
             .from("dm_messages")
             .select("*")
@@ -139,7 +96,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             .limit(1)
             .maybeSingle();
 
-          const { count } = await supabase
+          // Unread count
+          const { count: unread } = await supabase
             .from("dm_messages")
             .select("*", { count: "exact", head: true })
             .eq("thread_id", t.id)
@@ -152,7 +110,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             name: profile?.name || "Unknown",
             profile: profile?.profile_image || null,
             lastMessage: lastMsg || undefined,
-            unreadCount: count || 0,
+            unreadCount: unread || 0,
           });
         }
 
@@ -166,18 +124,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
     const channel = supabase
       .channel("dm-threads")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "dm_threads" },
-        (payload) => {
-          const t = payload.new as DMThread;
-          if (t.user1 === user.id || t.user2 === user.id) {
-            setThreads((prev) =>
-              prev.some((x) => x.id === t.id) ? prev : [t, ...prev]
-            );
-          }
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_threads" }, (payload) => {
+        const t = payload.new as DMThread;
+        if (t.user1 === user.id || t.user2 === user.id) {
+          setThreads((prev) => (prev.some((x) => x.id === t.id) ? prev : [t, ...prev]));
         }
-      )
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -188,44 +140,30 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     const channel = supabase
-      .channel("dm-messages")
+      .channel("dm-messages-global")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "dm_messages" },
         (payload) => {
           const msg = payload.new as DMMessage;
 
+          // Update sidebarThreads
           setSidebarThreads((prev) =>
             prev.map((t) =>
               t.id === msg.thread_id
                 ? {
                     ...t,
                     lastMessage: msg,
-                    unreadCount:
-                      msg.receiver_id === user.id
-                        ? (t.unreadCount || 0) + 1
-                        : t.unreadCount,
+                    unreadCount: t.unreadCount! + (msg.receiver_id === user.id ? 1 : 0),
                   }
                 : t
             )
           );
 
+          // Update messages if active thread
           if (activeThread?.id === msg.thread_id) {
             setMessages((prev) => [...prev, msg]);
-            if (msg.receiver_id === user.id) {
-              markThreadAsRead(msg.thread_id);
-            }
           }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "dm_messages" },
-        (payload) => {
-          const updated = payload.new as DMMessage;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === updated.id ? updated : m))
-          );
         }
       )
       .subscribe();
@@ -233,7 +171,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return () => supabase.removeChannel(channel);
   }, [user?.id, activeThread?.id]);
 
-  /* ===================== ACTIVE THREAD ===================== */
+  /* ===================== ACTIVE THREAD MESSAGES ===================== */
   useEffect(() => {
     if (!activeThread?.id) {
       setMessages([]);
@@ -252,7 +190,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (data) {
         setMessages(data);
         if (data.length > 0) setOldestMessage(data[0].created_at);
-        markThreadAsRead(activeThread.id);
       }
     };
 
@@ -266,12 +203,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     if (!user?.id || !activeThread?.id) return;
 
-    const receiverId =
-      activeThread.user1 === user.id
-        ? activeThread.user2
-        : activeThread.user1;
+    const receiverId = activeThread.user1 === user.id ? activeThread.user2 : activeThread.user1;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("dm_messages")
       .insert([
         {
@@ -286,19 +220,18 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       .select()
       .single();
 
-    return data as DMMessage;
+    if (error) console.error("Failed to send message:", error);
+    return data as DMMessage | undefined;
   };
 
-  /* ===================== CREATE / GET THREAD ===================== */
+  /* ===================== SET ACTIVE THREAD ===================== */
   const createOrGetThread = async (otherUserId: string) => {
     if (!user?.id) return null;
 
     const { data } = await supabase
       .from("dm_threads")
       .select("*")
-      .or(
-        `(user1.eq.${user.id},user2.eq.${otherUserId}),(user1.eq.${otherUserId},user2.eq.${user.id})`
-      )
+      .or(`(user1.eq.${user.id},user2.eq.${otherUserId}),(user1.eq.${otherUserId},user2.eq.${user.id})`)
       .maybeSingle();
 
     if (data) {
@@ -317,7 +250,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return created;
   };
 
-  /* ===================== LOAD OLDER ===================== */
   const loadOlder = async () => {
     if (!activeThread?.id || !oldestMessage) return;
 
@@ -347,7 +279,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         onlineUsers,
         setActiveThread,
         sendMessage,
-        sendTyping: () => {},
+        sendTyping: (state: boolean) => {},
         createOrGetThread,
         loadOlder,
       }}

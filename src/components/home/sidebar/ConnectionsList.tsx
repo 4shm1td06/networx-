@@ -15,7 +15,6 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
   const { sidebarThreads, activeThread, setActiveThread, user } = useChat();
   const [threadsMeta, setThreadsMeta] = useState<ThreadMeta[]>([]);
 
-  // Initialize threadsMeta with unread=0 and lastMessage undefined
   useEffect(() => {
     setThreadsMeta(
       sidebarThreads.map((t) => ({
@@ -26,7 +25,6 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
     );
   }, [sidebarThreads]);
 
-  // Fetch lastMessage + unreadCount for each thread
   useEffect(() => {
     if (!user || sidebarThreads.length === 0) return;
 
@@ -34,7 +32,6 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
       const updatedThreads: ThreadMeta[] = [];
 
       for (const thread of sidebarThreads) {
-        // Last message
         const { data: lastMsg } = await supabase
           .from("dm_messages")
           .select("*")
@@ -43,7 +40,6 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
           .limit(1)
           .maybeSingle();
 
-        // Unread count
         const { count: unreadCount } = await supabase
           .from("dm_messages")
           .select("*", { count: "exact", head: true })
@@ -64,7 +60,6 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
     loadMeta();
   }, [sidebarThreads, user?.id]);
 
-  // Real-time updates for incoming messages
   useEffect(() => {
     if (!user) return;
 
@@ -97,22 +92,33 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
     return () => supabase.removeChannel(channel);
   }, [user?.id]);
 
-  if (!sidebarThreads || sidebarThreads.length === 0) {
+  if (!threadsMeta.length) {
     return <p className="text-networx-light/50 p-4">No chats yet</p>;
   }
 
+  /* 🔥 FIXED PART */
   const handleThreadClick = (thread: ThreadMeta) => {
     setActiveThread({
       id: thread.id,
-      user1: user?.id || "",
-      user2: thread.otherUserId,
-      created_at: "" // placeholder; actual created_at is in threads
+      participants: [
+        {
+          id: user!.id,
+          name: user!.name,
+          profile_image: user!.profile_image,
+        },
+        {
+          id: thread.otherUserId,
+          name: thread.name,
+          profile_image: thread.profile,
+        },
+      ],
     });
-    // Reset unread count
+
     setThreadsMeta((prev) =>
       prev.map((t) => (t.id === thread.id ? { ...t, unreadCount: 0 } : t))
     );
-    if (onThreadClick) onThreadClick(thread.id);
+
+    onThreadClick?.(thread.id);
   };
 
   return (
@@ -134,28 +140,16 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
             <div className="flex-1">
               <div className="text-sm font-medium">{t.name}</div>
               <div className="text-xs text-gray-400 truncate">
-                {t.lastMessage?.content ||
-                  (t.lastMessage?.attachment_type
-                    ? `[${t.lastMessage.attachment_type}]`
-                    : "No messages yet")}
+                {t.lastMessage?.content || "No messages yet"}
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end">
-            {t.lastMessage && (
-              <span className="text-xs text-gray-400">
-                {new Date(t.lastMessage.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            )}
-            {t.unreadCount > 0 && (
-              <span className="bg-blue-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {t.unreadCount}
-              </span>
-            )}
-          </div>
+
+          {t.unreadCount > 0 && (
+            <span className="bg-blue-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+              {t.unreadCount}
+            </span>
+          )}
         </li>
       ))}
     </ul>

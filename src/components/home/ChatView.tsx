@@ -1,241 +1,207 @@
-// ChatView.tsx
-// THEME-LOCKED VERSION (Grey + Red, no gradients, consistent everywhere)
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useChat } from '@/contexts/ChatContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Check, CheckCheck, Paperclip} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from "react";
+import { Phone, Video, Send } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-/* ===================== DATE HELPERS ===================== */
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
+import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
+import { useCall } from "@/contexts/CallContext";
 
-const getDayLabel = (date: Date) => {
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  if (isSameDay(date, today)) return 'Today';
-  if (isSameDay(date, yesterday)) return 'Yesterday';
-
-  return date.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
-/* ===================== TYPES ===================== */
-type ChatViewProps = {
-  connectionId?: string;
-  otherUserId?: string;
-  name?: string;
-  profile_image?: string | null;
-};
-
-const ChatView = ({ connectionId, otherUserId, name, profile_image }: ChatViewProps) => {
+const ChatView = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const { activeThread, messages, sendMessage, typing } = useChat();
+
   const {
-    activeThread,
-    setActiveThread,
-    messages,
-    sendMessage,
-    typing,
-    sendTyping,
-    onlineUsers,
-    loadOlder,
-  } = useChat();
+    startVoiceCall,
+    startVideoCall,
+    acceptCall,
+    incomingCall,
+    localStream,
+    remoteStream,
+    endCall,
+  } = useCall();
 
-  const [messageInput, setMessageInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
-  const isTypingRef = useRef(false);
+  const [input, setInput] = useState("");
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const isOnline = otherUserId ? onlineUsers.includes(otherUserId) : false;
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  /* ===================== ENSURE THREAD ===================== */
+  /* attach streams */
   useEffect(() => {
-    if (!activeThread && connectionId && user?.id && otherUserId) {
-      setActiveThread({
-        id: connectionId,
-        user1: user.id,
-        user2: otherUserId,
-        created_at: new Date().toISOString(),
-      });
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
     }
-  }, [connectionId, activeThread, setActiveThread, user?.id, otherUserId]);
+  }, [localStream]);
 
-  /* ===================== AUTOSCROLL ===================== */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* ===================== SEND ===================== */
-  const handleSendMessage = async (e: React.FormEvent) => {
+  if (!activeThread || !user) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400">
+        Select a chat to start messaging
+      </div>
+    );
+  }
+
+  const otherUser = activeThread.participants?.find(
+    (p: any) => p.id !== user.id
+  );
+
+  if (!otherUser) return null;
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
-
-    await sendMessage(messageInput, otherUserId);
-    setMessageInput('');
-
-    sendTyping(false);
-    isTypingRef.current = false;
+    if (!input.trim()) return;
+    await sendMessage(input);
+    setInput("");
   };
 
-  /* ===================== TYPING ===================== */
-  const handleTyping = (val: string) => {
-    setMessageInput(val);
-
-    if (!isTypingRef.current) {
-      sendTyping(true);
-      isTypingRef.current = true;
-    }
-
-    if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => {
-      sendTyping(false);
-      isTypingRef.current = false;
-    }, 800);
-  };
-
-  /* ===================== DATE GROUPING ===================== */
-  const groupedMessages = useMemo(() => {
-    const result: any[] = [];
-    let lastDate: string | null = null;
-
-    messages.forEach((m) => {
-      const date = new Date(m.created_at).toDateString();
-      if (date !== lastDate) {
-        result.push({ type: 'date', date: new Date(m.created_at) });
-        lastDate = date;
-      }
-      result.push({ type: 'msg', data: m });
-    });
-
-    return result;
-  }, [messages]);
-
-  /* ===================== UI ===================== */
   return (
-    <div className="flex flex-col h-full bg-[#0f1115] text-slate-200">
+    <div className="flex flex-col h-full relative bg-[#0f1115] text-slate-200">
 
       {/* HEADER */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-[#161922] border-b border-white/5">
-       
-
-        <Avatar className="h-9 w-9">
-          {profile_image ? (
-            <AvatarImage src={profile_image} />
-          ) : (
-            <AvatarFallback className="bg-red-600 text-white">
-              {name?.[0] || 'U'}
-            </AvatarFallback>
-          )}
-        </Avatar>
-
-        <div className="flex flex-col">
-          <p className="text-sm font-medium text-slate-100">{name || 'User'}</p>
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-slate-500'}`} />
-            <span className={isOnline ? 'text-green-500' : 'text-slate-500'}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[#161922]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white">
+            {otherUser.name?.[0] ?? "U"}
           </div>
+          <div>
+            <p className="text-sm font-medium">{otherUser.name}</p>
+            <p className="text-xs text-slate-400">Online</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => startVoiceCall(otherUser.id)}
+            className="p-2 rounded hover:bg-white/10"
+          >
+            <Phone size={18} />
+          </button>
+          <button
+            onClick={() => startVideoCall(otherUser.id)}
+            className="p-2 rounded hover:bg-white/10"
+          >
+            <Video size={18} />
+          </button>
         </div>
       </div>
 
-      {/* MESSAGES */}
-      <div
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-3 scrollbar-thin scrollbar-thumb-white/10"
-        onScroll={(e) => e.currentTarget.scrollTop === 0 && loadOlder()}
-      >
+      {/* CHAT MESSAGES */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-3">
         <AnimatePresence>
-          {groupedMessages.map((item, i) => {
-            if (item.type === 'date') {
-              return (
-                <div key={`date-${i}`} className="flex justify-center my-4">
-                  <span className="text-xs px-3 py-1 rounded-full bg-[#1c1f2a] text-slate-400 border border-white/5">
-                    {getDayLabel(item.date)}
-                  </span>
-                </div>
-              );
-            }
-
-            const m = item.data;
-            const isOwn = m.sender_id === user?.id;
-
-            return (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+          {messages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${
+                msg.sender_id === user.id
+                  ? "justify-end"
+                  : "justify-start"
+              }`}
+            >
+              <div
+                className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                  msg.sender_id === user.id
+                    ? "bg-red-600 text-white rounded-br-sm"
+                    : "bg-[#2a2e38] rounded-bl-sm"
+                }`}
               >
-                <div
-                  className={`max-w-[72%] px-4 py-2 rounded-2xl text-sm leading-relaxed border shadow-sm
-                    ${isOwn
-                      ? 'bg-red-600 text-white border-red-700 rounded-br-sm'
-                      : 'bg-[#2a2e38] text-slate-200 border-white/10 rounded-bl-sm'
-                    }`}
-                >
-                  <p>{m.content}</p>
-
-                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-70">
-                    <span>
-                      {new Date(m.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                    {isOwn && (m.is_read ? <CheckCheck size={12} /> : <Check size={12} />)}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                {msg.content}
+              </div>
+            </motion.div>
+          ))}
         </AnimatePresence>
 
-        {typing?.[activeThread?.id ?? ''] && (
-          <p className="text-xs text-slate-400 italic px-2">typing…</p>
+        {typing && (
+          <p className="text-xs text-slate-400 italic">typing…</p>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={bottomRef} />
       </div>
 
       {/* INPUT */}
       <form
-        onSubmit={handleSendMessage}
-        className="flex items-center gap-2 px-4 py-3 bg-[#161922] border-t border-white/5"
+        onSubmit={handleSend}
+        className="flex items-center gap-2 px-4 py-3 border-t border-white/5 bg-[#161922]"
       >
-        <Button type="button" size="icon" variant="ghost" className="text-slate-400">
-          <Paperclip size={16} />
-        </Button>
-
-        <Input
-          value={messageInput}
-          onChange={(e) => handleTyping(e.target.value)}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Message…"
-          className="flex-1 bg-[#0f1115] border border-white/10 rounded-full px-5 text-sm focus-visible:ring-2 focus-visible:ring-red-600"
+          className="flex-1 bg-[#0f1115] px-4 py-2 rounded-full outline-none"
         />
-
-        <Button
+        <button
           type="submit"
-          size="icon"
-          className="rounded-full bg-red-600 hover:bg-red-700 active:scale-95 transition"
-          disabled={!messageInput.trim()}
+          className="p-2 rounded-full bg-red-600 text-white"
+          disabled={!input.trim()}
         >
           <Send size={16} />
-        </Button>
+        </button>
       </form>
+
+      {/* INCOMING CALL POPUP */}
+      {incomingCall && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#0F1729] p-6 rounded-xl text-center space-y-4">
+            <p className="text-lg font-semibold">
+              Incoming {incomingCall.video ? "Video" : "Voice"} Call
+            </p>
+            <button
+              onClick={acceptCall}
+              className="px-6 py-2 bg-green-600 rounded text-white"
+            >
+              Accept
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ACTIVE CALL POPUP (THIS WAS MISSING) */}
+      {(localStream || remoteStream) && (
+        <div className="absolute bottom-20 right-4 bg-black rounded-xl p-3 z-40 w-64 space-y-2">
+          {localStream && (
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-32 rounded bg-black"
+            />
+          )}
+
+          {remoteStream && (
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-32 rounded bg-black"
+            />
+          )}
+
+          <audio ref={remoteAudioRef} autoPlay />
+
+          <button
+            onClick={endCall}
+            className="w-full py-2 bg-red-600 rounded text-white"
+          >
+            End Call
+          </button>
+        </div>
+      )}
     </div>
   );
 };
