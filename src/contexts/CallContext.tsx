@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { io } from "socket.io-client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const socket = io("http://localhost:5000");
+const socket = io("https://networx-call.onrender.com");
 
 type IncomingCall = {
   fromUserId: string;
@@ -77,7 +77,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
 
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: video, // ✅ IMPORTANT FIX
+      video: video, // 
     });
 
     setLocalStream(stream);
