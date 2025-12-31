@@ -241,7 +241,7 @@ export default function AuthWithEmailOtp() {
   };
 
   const titles = {
-    email: "Welcome to Networx",
+    email: "Welcome to NetworX",
     password: "Secure Login",
     otp: "Verify Your Email",
     setPassword: "Create Password",
