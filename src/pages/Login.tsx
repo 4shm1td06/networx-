@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Mail, Lock, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Vanta
+// VANTA
 import * as THREE from "three";
 // @ts-ignore
 import GLOBE from "vanta/dist/vanta.globe.min";
@@ -20,12 +20,12 @@ export default function AuthWithEmailOtp() {
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   const [checkingLogin, setCheckingLogin] = useState(true);
-
+  const [uiReady, setUiReady] = useState(false); // 🔥 IMPORTANT
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const vantaRef = useRef<HTMLDivElement>(null);
-  const [vantaEffect, setVantaEffect] = useState<any>(null);
+  const vantaInstance = useRef<any>(null);
 
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -33,25 +33,56 @@ export default function AuthWithEmailOtp() {
   const API_URL = "https://networx-smtp.vercel.app/api";
 
   // ======================
-  // VANTA BACKGROUND
+  // AUTO LOGIN CHECK (FIXED)
   // ======================
   useEffect(() => {
-    if (!vantaEffect && vantaRef.current) {
-      setVantaEffect(
-        GLOBE({
-          el: vantaRef.current,
-          THREE,
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          color: 0xff3f81,
-          backgroundColor: 0x0b1120,
-          size: 0.8,
-        })
-      );
-    }
-    return () => vantaEffect && vantaEffect.destroy();
-  }, [vantaEffect]);
+    const checkUser = async () => {
+      try {
+        const res = await fetch(`${API_URL}/me`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        setUser(data.user);
+        navigate("/home", { replace: true });
+      } catch {
+        // Not logged in
+      } finally {
+        setCheckingLogin(false);
+        setUiReady(true); // 🔥 allow animation only now
+      }
+    };
+
+    checkUser();
+  }, [navigate, setUser]);
+
+  // ======================
+  // VANTA BACKGROUND (SAFE INIT)
+  // ======================
+  useEffect(() => {
+    if (!uiReady || !vantaRef.current || vantaInstance.current) return;
+
+    (window as any).THREE = THREE;
+
+    vantaInstance.current = GLOBE({
+      el: vantaRef.current,
+      THREE,
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      color: 0xff3f81,
+      backgroundColor: 0x0b1120,
+      size: 1,
+    });
+
+    return () => {
+      if (vantaInstance.current) {
+        vantaInstance.current.destroy();
+        vantaInstance.current = null;
+      }
+    };
+  }, [uiReady]);
 
   // ======================
   // RESET FEEDBACK ON STEP CHANGE
@@ -62,28 +93,11 @@ export default function AuthWithEmailOtp() {
   }, [step]);
 
   // ======================
-  // AUTO LOGIN CHECK
+  // LOADING SCREEN (NO UNMOUNT)
   // ======================
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const res = await fetch(`${API_URL}/me`, { credentials: "include" });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setUser(data.user);
-        navigate("/home", { replace: true });
-      } catch {
-        // Not logged in
-      } finally {
-        setCheckingLogin(false);
-      }
-    };
-    checkUser();
-  }, []);
-
   if (checkingLogin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B1120]">
+      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center">
         <Loader2 className="animate-spin w-8 h-8 text-indigo-500" />
       </div>
     );
@@ -94,7 +108,7 @@ export default function AuthWithEmailOtp() {
   // ======================
   const fetchCurrentUser = async () => {
     const res = await fetch(`${API_URL}/me`, { credentials: "include" });
-    if (!res.ok) throw new Error("Auth failed");
+    if (!res.ok) throw new Error();
     const data = await res.json();
     setUser(data.user);
   };
@@ -114,6 +128,8 @@ export default function AuthWithEmailOtp() {
         credentials: "include",
         body: JSON.stringify({ email }),
       });
+
+      if (!res.ok) throw new Error();
       const data = await res.json();
 
       if (data.exists) {
@@ -125,6 +141,7 @@ export default function AuthWithEmailOtp() {
           credentials: "include",
           body: JSON.stringify({ email }),
         });
+
         setSuccess("OTP sent to your email");
         setStep("otp");
       }
@@ -147,8 +164,10 @@ export default function AuthWithEmailOtp() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+
+      if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) throw new Error();
 
       await fetchCurrentUser();
       navigate("/home", { replace: true });
@@ -171,10 +190,12 @@ export default function AuthWithEmailOtp() {
         credentials: "include",
         body: JSON.stringify({ email, otp }),
       });
+
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (!data.success) throw new Error();
 
-      setSuccess("Email verified successfully");
+      setSuccess("Email verified");
       setStep("setPassword");
     } catch {
       setError("Invalid or expired OTP");
@@ -195,6 +216,8 @@ export default function AuthWithEmailOtp() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (!data.success) throw new Error();
 
@@ -235,116 +258,109 @@ export default function AuthWithEmailOtp() {
   // RENDER
   // ======================
   return (
-    <div ref={vantaRef} className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md backdrop-blur-xl bg-gray-900/80 border border-gray-700 shadow-[0_0_40px_rgba(99,102,241,0.15)] text-gray-100">
-        {/* STEP INDICATOR */}
-        <div className="flex justify-center gap-2 pt-4">
-          {["email", "otp", "setPassword", "password"].map((s) => (
-            <div
-              key={s}
-              className={`h-2 w-10 rounded-full ${
-                step === s ? "bg-indigo-500" : "bg-gray-700"
-              }`}
-            />
-          ))}
-        </div>
+    <div className="relative min-h-screen w-full bg-[#0B1120] overflow-hidden">
+      {/* VANTA BACKGROUND */}
+      <div ref={vantaRef} className="absolute inset-0 z-0" />
 
-        <CardHeader className="text-center space-y-2">
-          <div className="flex justify-center">{icons[step]}</div>
-          <CardTitle className="text-2xl font-bold">{titles[step]}</CardTitle>
-          <p className="text-sm text-gray-400">{subtitles[step]}</p>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-3 py-2 rounded-md text-sm">
-              {success}
-            </div>
-          )}
-
-          {step === "email" && (
-            <form onSubmit={handleCheckEmail} className="space-y-4">
-              <Input
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+      {/* AUTH CARD */}
+      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md backdrop-blur-xl bg-gray-900/80 border border-gray-700 text-gray-100">
+          <div className="flex justify-center gap-2 pt-4">
+            {["email", "password", "otp", "setPassword"].map((s) => (
+              <div
+                key={s}
+                className={`h-2 w-10 rounded-full ${
+                  step === s ? "bg-indigo-500" : "bg-gray-700"
+                }`}
               />
-              <Button className="w-full bg-indigo-600" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Continue"}
-              </Button>
-            </form>
-          )}
+            ))}
+          </div>
 
-          {step === "password" && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <Button className="w-full bg-indigo-600" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Login"}
-              </Button>
-            </form>
-          )}
+          <CardHeader className="text-center space-y-2">
+            <div className="flex justify-center">{icons[step]}</div>
+            <CardTitle className="text-2xl font-bold">
+              {titles[step]}
+            </CardTitle>
+            <p className="text-sm text-gray-400">{subtitles[step]}</p>
+          </CardHeader>
 
-          {step === "otp" && (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <Input
-                maxLength={6}
-                className="text-center tracking-[0.6em] text-lg font-mono"
-                placeholder="______"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                required
-              />
-              <Button className="w-full bg-indigo-600" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Verify"}
-              </Button>
-            </form>
-          )}
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-md text-sm">
+                {error}
+              </div>
+            )}
 
-          {step === "setPassword" && (
-            <form onSubmit={handleSetPassword} className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Create password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-500">
-                Minimum 8 characters recommended
-              </p>
-              <Button className="w-full bg-indigo-600" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : "Finish"}
-              </Button>
-            </form>
-          )}
+            {success && (
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-3 py-2 rounded-md text-sm">
+                {success}
+              </div>
+            )}
 
-          {step !== "email" && (
-            <button
-              className="text-xs text-indigo-400 hover:underline w-full text-center"
-              onClick={() => {
-                setStep("email");
-                setOtp("");
-                setPassword("");
-              }}
-            >
-              Change email
-            </button>
-          )}
-        </CardContent>
-      </Card>
+            {step === "email" && (
+              <form onSubmit={handleCheckEmail} className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Button className="w-full bg-indigo-600" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin" /> : "Continue"}
+                </Button>
+              </form>
+            )}
+
+            {step === "password" && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button className="w-full bg-indigo-600" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin" /> : "Login"}
+                </Button>
+              </form>
+            )}
+
+            {step === "otp" && (
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <Input
+                  maxLength={6}
+                  className="text-center tracking-[0.6em] text-lg font-mono"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, ""))
+                  }
+                  required
+                />
+                <Button className="w-full bg-indigo-600" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin" /> : "Verify"}
+                </Button>
+              </form>
+            )}
+
+            {step === "setPassword" && (
+              <form onSubmit={handleSetPassword} className="space-y-4">
+                <Input
+                  type="password"
+                  placeholder="Create password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button className="w-full bg-indigo-600" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin" /> : "Finish"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
