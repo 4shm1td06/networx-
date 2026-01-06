@@ -205,30 +205,45 @@ export default function AuthWithEmailOtp() {
   };
 
   const handleSetPassword = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      const res = await fetch(`${API_URL}/set-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    // 1️⃣ Set password
+    const res = await fetch(`${API_URL}/set-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (!data.success) throw new Error();
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    if (!data.success) throw new Error();
 
-      await fetchCurrentUser();
-      navigate("/home", { replace: true });
-    } catch {
-      setError("Failed to complete signup");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 2️⃣ IMMEDIATELY LOGIN (this creates cookie)
+    const loginRes = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!loginRes.ok) throw new Error();
+
+    // 3️⃣ Fetch user
+    await fetchCurrentUser();
+
+    // 4️⃣ Redirect
+    navigate("/home", { replace: true });
+  } catch {
+    setError("Failed to complete signup");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ======================
   // UI CONFIG
