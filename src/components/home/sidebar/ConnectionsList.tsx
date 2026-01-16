@@ -98,7 +98,14 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
   }, [user?.id]);
 
   if (!sidebarThreads || sidebarThreads.length === 0) {
-    return <p className="text-networx-light/50 p-4">No chats yet</p>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-center p-6">
+        <div>
+          <p className="text-networx-light/60 mb-2">No connections yet</p>
+          <p className="text-xs text-networx-light/40">Share your code to connect with friends</p>
+        </div>
+      </div>
+    );
   }
 
   const handleThreadClick = (thread: ThreadMeta) => {
@@ -116,24 +123,24 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
   };
 
   return (
-    <ul className="overflow-y-auto flex-1">
+    <div className="overflow-y-auto flex-1">
       {threadsMeta.map((t) => (
-        <li
+        <div
           key={t.id}
-          className={`p-3 cursor-pointer hover:bg-networx-primary/70 ${
-            activeThread?.id === t.id ? "bg-networx-primary" : ""
-          } flex items-center gap-3 justify-between`}
+          className={`connection-item ${activeThread?.id === t.id ? 'connection-item-active' : 'hover:bg-[#0F1628]'}`}
           onClick={() => handleThreadClick(t)}
         >
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <img
               src={t.profile || "/placeholder.svg"}
               alt={t.name}
-              className="w-8 h-8 rounded-full object-cover"
+              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#232e48]"
             />
-            <div className="flex-1">
-              <div className="text-sm font-medium">{t.name}</div>
-              <div className="text-xs text-gray-400 truncate">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-networx-light truncate">
+                {t.name}
+              </div>
+              <div className="text-xs text-networx-light/60 truncate">
                 {t.lastMessage?.content ||
                   (t.lastMessage?.attachment_type
                     ? `[${t.lastMessage.attachment_type}]`
@@ -141,9 +148,10 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end">
+          
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
             {t.lastMessage && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-networx-light/50">
                 {new Date(t.lastMessage.created_at).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -151,14 +159,14 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
               </span>
             )}
             {t.unreadCount > 0 && (
-              <span className="bg-blue-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {t.unreadCount}
+              <span className="bg-networx-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
+                {t.unreadCount > 9 ? '9+' : t.unreadCount}
               </span>
             )}
           </div>
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 };
 

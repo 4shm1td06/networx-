@@ -71,6 +71,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [oldestMessage, setOldestMessage] = useState<string | null>(null);
 
+   useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+ }, []);
+ 
   /* ===================== MARK AS READ ===================== */
   const markThreadAsRead = async (threadId: string) => {
     if (!user?.id) return;
@@ -111,7 +117,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       .select("*")
       .or(`user1.eq.${user.id},user2.eq.${user.id}`)
       .order("created_at", { ascending: false })
-      .then(async ({ data }) => {
+      .then(async ({ data, error }) => {
+        if (error) {
+          console.error("Failed to fetch threads:", error);
+          return;
+        }
+        
         if (!data) return;
 
         setThreads(data);
@@ -119,6 +130,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         const otherUserIds = data.map((t) =>
           t.user1 === user.id ? t.user2 : t.user1
         );
+
+        if (otherUserIds.length === 0) {
+          setSidebarThreads([]);
+          return;
+        }
 
         const { data: users } = await supabase
           .from("users")
@@ -157,6 +173,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setSidebarThreads(sidebar);
+      })
+      .catch((err) => {
+        console.error("Error fetching threads:", err);
       });
   }, [user?.id]);
 

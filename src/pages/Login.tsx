@@ -1,15 +1,10 @@
-import React, { useState, FormEvent, useEffect, useRef } from "react";
+import React, { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail, Lock, ShieldCheck } from "lucide-react";
+import { Loader2, QrCode } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-
-// VANTA
-import * as THREE from "three";
-// @ts-ignore
-import GLOBE from "vanta/dist/vanta.globe.min";
 
 type Step = "email" | "password" | "otp" | "setPassword";
 
@@ -19,117 +14,49 @@ export default function AuthWithEmailOtp() {
   const [password, setPassword] = useState("");
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
-  const [checkingLogin, setCheckingLogin] = useState(true);
-  const [uiReady, setUiReady] = useState(false); // 🔥 IMPORTANT
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaInstance = useRef<any>(null);
 
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
   const API_URL = "https://networx-smtp.vercel.app/api";
 
-  // ======================
-  // AUTO LOGIN CHECK (FIXED)
-  // ======================
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const res = await fetch(`${API_URL}/me`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error();
-
-        const data = await res.json();
-        setUser(data.user);
-        navigate("/home", { replace: true });
-      } catch {
-        // Not logged in
-      } finally {
-        setCheckingLogin(false);
-        setUiReady(true); // 🔥 allow animation only now
-      }
+  // =========================
+  // Handle successful login - extract user from response
+  // =========================
+  const handleLoginSuccess = (responseData: any) => {
+    // Backend returns: { success: true, userId: "uuid" }
+    // We need to construct the user object from the response + form data
+    if (!responseData.userId) {
+      throw new Error("Server returned invalid response - missing userId");
+    }
+    
+    const userData: any = {
+      id: responseData.userId,
+      email: email, // Use email from form state
     };
-
-    checkUser();
-  }, [navigate, setUser]);
-
-  // ======================
-  // VANTA BACKGROUND (SAFE INIT)
-  // ======================
-  useEffect(() => {
-    if (!uiReady || !vantaRef.current || vantaInstance.current) return;
-
-    (window as any).THREE = THREE;
-
-    vantaInstance.current = GLOBE({
-      el: vantaRef.current,
-      THREE,
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      color: 0xff3f81,
-      backgroundColor: 0x0b1120,
-      size: 1,
-    });
-
-    return () => {
-      if (vantaInstance.current) {
-        vantaInstance.current.destroy();
-        vantaInstance.current = null;
-      }
-    };
-  }, [uiReady]);
-
-  // ======================
-  // RESET FEEDBACK ON STEP CHANGE
-  // ======================
-  useEffect(() => {
-    setError(null);
-    setSuccess(null);
-  }, [step]);
-
-  // ======================
-  // LOADING SCREEN (NO UNMOUNT)
-  // ======================
-  if (checkingLogin) {
-    return (
-      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center">
-        <Loader2 className="animate-spin w-8 h-8 text-indigo-500" />
-      </div>
-    );
-  }
-
-  // ======================
-  // HELPERS
-  // ======================
-  const fetchCurrentUser = async () => {
-    const res = await fetch(`${API_URL}/me`, { credentials: "include" });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    setUser(data.user);
+    
+    // If tokens are provided, store them
+    if (responseData.accessToken) userData.accessToken = responseData.accessToken;
+    if (responseData.refreshToken) userData.refreshToken = responseData.refreshToken;
+    
+    setUser(userData);
   };
 
-  // ======================
-  // HANDLERS
-  // ======================
+  // =========================
+  // Step 1: Check email
+  // =========================
   const handleCheckEmail = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    if (!email) return;
 
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/check-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email }),
       });
 
-      if (!res.ok) throw new Error();
       const data = await res.json();
 
       if (data.exists) {
@@ -138,243 +65,282 @@ export default function AuthWithEmailOtp() {
         await fetch(`${API_URL}/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ email }),
         });
-
-        setSuccess("OTP sent to your email");
+        alert("✅ OTP sent to your email");
         setStep("otp");
       }
-    } catch {
-      setError("Unable to connect to server");
+    } catch (err: any) {
+      alert("Server error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // =========================
+  // Step 2: Login existing user
+  // =========================
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.success) throw new Error();
+      
+      if (!data.success) {
+        alert(data.error || "Invalid credentials");
+        return;
+      }
 
-      await fetchCurrentUser();
-      navigate("/home", { replace: true });
-    } catch {
-      setError("Invalid email or password");
+      // Extract user and tokens from response
+      handleLoginSuccess(data);
+      navigate("/home");
+    } catch (err: any) {
+      alert("Login failed: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // =========================
+  // Step 3: Verify OTP
+  // =========================
   const handleVerifyOtp = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    if (otp.length !== 6) return alert("Enter valid 6-digit OTP");
 
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, otp }),
       });
 
-      if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.success) throw new Error();
-
-      setSuccess("Email verified");
-      setStep("setPassword");
-    } catch {
-      setError("Invalid or expired OTP");
+      if (data.success) {
+        alert("✅ Email verified");
+        setStep("setPassword");
+      } else {
+        alert(data.error || "Invalid OTP");
+      }
+    } catch (err: any) {
+      alert("Server error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // =========================
+  // Step 4: Set password (new user)
+  // =========================
   const handleSetPassword = async (e: FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    // 1️⃣ Set password
-    const res = await fetch(`${API_URL}/set-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch(`${API_URL}/set-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    if (!data.success) throw new Error();
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || "Registration failed");
+        return;
+      }
 
-    // 2️⃣ IMMEDIATELY LOGIN (this creates cookie)
-    const loginRes = await fetch(`${API_URL}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+      // Login automatically
+      const loginRes = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const loginData = await loginRes.json();
+      
+      if (!loginData.success) throw new Error(loginData.error || "Login failed");
 
-    if (!loginRes.ok) throw new Error();
-
-    // 3️⃣ Fetch user
-    await fetchCurrentUser();
-
-    // 4️⃣ Redirect
-    navigate("/home", { replace: true });
-  } catch {
-    setError("Failed to complete signup");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  // ======================
-  // UI CONFIG
-  // ======================
-  const icons = {
-    email: <Mail className="w-8 h-8 text-indigo-500" />,
-    password: <Lock className="w-8 h-8 text-indigo-500" />,
-    otp: <ShieldCheck className="w-8 h-8 text-indigo-500" />,
-    setPassword: <Lock className="w-8 h-8 text-indigo-500" />,
+      // Extract user and tokens from response
+      handleLoginSuccess(loginData);
+      navigate("/home");
+    } catch (err: any) {
+      alert("Server error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const titles = {
-    email: "Welcome to NetworX",
-    password: "Secure Login",
-    otp: "Verify Your Email",
-    setPassword: "Create Password",
-  };
-
-  const subtitles = {
-    email: "Enter your email to continue",
-    password: "Enter your password",
-    otp: "Enter the 6-digit code sent to you",
-    setPassword: "Choose a strong password",
-  };
-
-  // ======================
-  // RENDER
-  // ======================
+  // =========================
+  // UI
+  // =========================
   return (
-    <div className="relative min-h-screen w-full bg-[#0B1120] overflow-hidden">
-      {/* VANTA BACKGROUND */}
-      <div ref={vantaRef} className="absolute inset-0 z-0" />
+    <div className="min-h-screen flex items-center justify-center bg-networx-dark p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-networx-light mb-2">Networx</h1>
+          <p className="text-networx-light/60">Connect with your community</p>
+        </div>
 
-      {/* AUTH CARD */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md backdrop-blur-xl bg-gray-900/80 border border-gray-700 text-gray-100">
-          <div className="flex justify-center gap-2 pt-4">
-            {["email", "password", "otp", "setPassword"].map((s) => (
-              <div
-                key={s}
-                className={`h-2 w-10 rounded-full ${
-                  step === s ? "bg-indigo-500" : "bg-gray-700"
-                }`}
-              />
-            ))}
-          </div>
-
-          <CardHeader className="text-center space-y-2">
-            <div className="flex justify-center">{icons[step]}</div>
-            <CardTitle className="text-2xl font-bold">
-              {titles[step]}
+        <Card className="networx-card border-[#232e48] shadow-2xl">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-bold text-center text-networx-light">
+              {step === "email"
+                ? "Welcome back"
+                : step === "password"
+                ? "Sign in"
+                : step === "otp"
+                ? "Verify your email"
+                : "Create your account"}
             </CardTitle>
-            <p className="text-sm text-gray-400">{subtitles[step]}</p>
+            <p className="text-center text-sm text-networx-light/60 mt-2">
+              {step === "email"
+                ? "Enter your email to get started"
+                : step === "password"
+                ? "Enter your password to continue"
+                : step === "otp"
+                ? "Check your email for the code"
+                : "Set a secure password"}
+            </p>
           </CardHeader>
 
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-3 py-2 rounded-md text-sm">
-                {success}
-              </div>
-            )}
-
+          <CardContent className="space-y-6">
             {step === "email" && (
               <form onSubmit={handleCheckEmail} className="space-y-4">
-                <Input
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <Button className="w-full bg-indigo-600" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : "Continue"}
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-field h-12"
+                    required
+                  />
+                </div>
+                <Button 
+                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  disabled={loading || !email}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : null}
+                  Continue
                 </Button>
               </form>
             )}
 
             {step === "password" && (
               <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button className="w-full bg-indigo-600" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : "Login"}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-networx-light">
+                    Password
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field h-12"
+                    required
+                  />
+                </div>
+                <Button 
+                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  disabled={loading || !password}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : null}
+                  Sign In
                 </Button>
               </form>
             )}
 
             {step === "otp" && (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <Input
-                  maxLength={6}
-                  className="text-center tracking-[0.6em] text-lg font-mono"
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, ""))
-                  }
-                  required
-                />
-                <Button className="w-full bg-indigo-600" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : "Verify"}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-networx-light">
+                    6-digit code
+                  </label>
+                  <Input
+                    placeholder="000000"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className="input-field h-12 text-center text-2xl tracking-widest font-mono"
+                    required
+                  />
+                </div>
+                <Button 
+                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  disabled={loading || otp.length !== 6}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : null}
+                  Verify
                 </Button>
               </form>
             )}
 
             {step === "setPassword" && (
               <form onSubmit={handleSetPassword} className="space-y-4">
-                <Input
-                  type="password"
-                  placeholder="Create password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button className="w-full bg-indigo-600" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : "Finish"}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-networx-light">
+                    Create password
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field h-12"
+                    required
+                  />
+                  <p className="text-xs text-networx-light/50">
+                    Use at least 8 characters
+                  </p>
+                </div>
+                <Button 
+                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  disabled={loading || password.length < 8}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : null}
+                  Create Account
                 </Button>
               </form>
             )}
           </CardContent>
         </Card>
+
+        <p className="text-center text-sm text-networx-light/50 mt-6">
+          By signing in, you agree to our{" "}
+          <span className="text-primary cursor-pointer hover:underline">
+            Terms of Service
+          </span>
+        </p>
+
+        {/* QR Connect Option */}
+        <div className="mt-8 pt-6 border-t border-[#232e48]">
+          <p className="text-center text-sm text-networx-light/60 mb-4">
+            Have a connection code?
+          </p>
+          <Button
+            onClick={() => window.location.href = '/qr-connect'}
+            variant="outline"
+            className="w-full bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all flex items-center justify-center gap-2"
+          >
+            <QrCode className="h-4 w-4" /> Connect via QR Code
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -5,49 +5,43 @@ import { supabase } from "../lib/supabase";
 const ConnectionContext = createContext<any>(null);
 
 export const ConnectionProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, getAuthHeader } = useAuth();
   const [currentCode, setCurrentCode] = useState<any>(null);
   const [activeFriend, setActiveFriend] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<any>(null);
 
-  const API_URL = "https://networx-smtp.vercel.app/api"
-  // const API_URL = "http://localhost:4012/api"; // backend for code generation only
+ const API_URL = "https://networx-smtp.vercel.app/api"
+// const API_URL = "http://localhost:4012/api"; // backend for code generation only
 
   // ---------------------------
   // Generate connection code
   // ---------------------------
   const generateConnectionCode = async () => {
-  // 1️⃣ Ensure user is loaded
-  if (!user || isLoading) {
-    console.error("Cannot generate code: user not loaded yet");
+  // 1️⃣ Ensure user is logged in
+  if (!user?.id) {
+    console.error("Cannot generate code: user not logged in");
     return null;
   }
 
-  let ownerUserId = user.id; // default to auth user ID
+  const ownerUserId = user.id; // Use the UUID from Supabase auth
 
-  // 2️⃣ Optional: fetch public.users ID if your backend expects it
+  // 2️⃣ Make request to generate connection code
   try {
-    const resUser = await fetch(`${API_URL}/get-user-id`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: user.email }),
-    });
+    const headers: any = {
+      "Content-Type": "application/json",
+    };
 
-    if (resUser.ok) {
-      const dataUser = await resUser.json();
-      if (dataUser?.id) ownerUserId = dataUser.id;
+    // If token is available, send it
+    if (user.accessToken) {
+      headers.Authorization = `Bearer ${user.accessToken}`;
     }
-  } catch (err) {
-    console.warn("Failed to fetch public user ID, using auth ID:", err);
-  }
 
-  // 3️⃣ Make request to generate connection code
-  try {
     const res = await fetch(`${API_URL}/generate-connection-code`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ownerUserId }), // pass correct ID
+      headers,
+      body: JSON.stringify({ ownerUserId }),
+      credentials: "include", // Include cookies if backend uses them
     });
 
     const data = await res.json();
@@ -74,7 +68,7 @@ export const ConnectionProvider = ({ children }: { children: React.ReactNode }) 
   // Verify connection code (frontend-only)
   // ---------------------------
   const verifyConnectionCode = async (code: string) => {
-    if (!user || isLoading) return null;
+    if (!user) return null;
 
     try {
       // 1️⃣ Fetch code (unverified & not expired)

@@ -1,11 +1,11 @@
 // src/App.tsx
 import { useEffect } from "react";
 
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { ConnectionProvider } from "./contexts/ConnectionContext";
@@ -25,6 +25,8 @@ import NotFound from "./pages/NotFound";
 import AdminPanel from "./components/AdminPanel";
 import MobileLayout from "./components/MobileLayout";
 import Discovery from "./pages/Discovery";
+import QRConnectionFlow from "./components/QRConnectionFlow";
+import DeepLink from "./pages/DeepLink";
 
 // =======================
 // 🔥 PWA REGISTRATION
@@ -72,6 +74,12 @@ const App = () => {
       window.removeEventListener("online", handleOnline);
     };
   }, []);
+  // 🔔 ask permission
+  useEffect(() => {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -89,6 +97,8 @@ const App = () => {
                       <Routes>
                         {/* Public */}
                         <Route path="/login" element={<Login />} />
+                        <Route path="/connect" element={<DeepLink />} />
+                        <Route path="/qr-connect" element={<QRConnectionFlow />} />
 
                         {/* Protected */}
                         <Route
@@ -146,6 +156,8 @@ const App = () => {
                     <Routes>
                       {/* Public */}
                       <Route path="/login" element={<Login />} />
+                      <Route path="/connect" element={<DeepLink />} />
+                      <Route path="/qr-connect" element={<QRConnectionFlow />} />
 
                       {/* Protected */}
                       <Route

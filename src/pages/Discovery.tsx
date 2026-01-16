@@ -100,41 +100,59 @@ const Discovery = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-networx-dark">
+    <div className="flex flex-col h-full bg-networx-dark overflow-hidden">
+      {/* Header Section */}
+      <div className="border-b border-[#232e48] p-6">
+        <h1 className="text-3xl font-bold text-networx-light">Discovery</h1>
+        <p className="text-networx-light/60 mt-2">Explore offers based on your interests</p>
+      </div>
+
       {/* Offers settings card */}
-      <div className="p-4">
-        <Card className="networx-card">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg text-networx-light">Industry/Perks</CardTitle>
+      <div className="px-6 py-4">
+        <Card className="networx-card border-[#232e48]">
+          <CardHeader className="card-header pb-4">
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1">
+                <CardTitle className="text-lg text-networx-light flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-networx-primary" />
+                  Personalized Offers
+                </CardTitle>
+                <CardDescription className="text-networx-light/60 mt-1">
+                  Get offers from categories you care about
+                </CardDescription>
+              </div>
               <Switch 
                 checked={offersEnabled} 
-                onCheckedChange={setOffersEnabled} 
+                onCheckedChange={setOffersEnabled}
               />
             </div>
-            <CardDescription className="text-networx-light/70">
-              Curated offers based on your interests
-            </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-sm text-networx-light/80 mb-2">
-              <p>You will receive offers from the categories you've selected. No personal information is shared with partners.</p>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {user?.interests?.map(interest => (
-                <Badge key={interest} variant="outline" className="bg-[#1C2A41] text-networx-light border-[#232e48] px-3 py-1 flex items-center">
-                  {interestCategories.find(cat => cat.id === interest)?.icon}
-                  {interestCategories.find(cat => cat.id === interest)?.name}
-                </Badge>
-              )) || (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs bg-[#1C2A41] text-networx-light border-[#232e48] hover:bg-[#283a56]"
-                  onClick={() => window.location.href = '/settings'}
-                >
-                  Select interests
-                </Button>
+          <CardContent className="card-content">
+            <p className="text-sm text-networx-light/70 mb-4">
+              We only send offers from the categories you've selected. Your privacy is important to us.
+            </p>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-networx-light">Your interests:</p>
+              {user?.interests && user.interests.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {user.interests.map(interest => {
+                    const category = interestCategories.find(cat => cat.id === interest);
+                    return category ? (
+                      <Badge 
+                        key={interest} 
+                        className="bg-networx-primary/20 text-networx-primary border-networx-primary/30 px-3 py-1.5 flex items-center gap-1"
+                      >
+                        {category.icon}
+                        {category.name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              ) : (
+                <div className="text-sm text-networx-light/50 p-3 bg-[#1C2A41] rounded-lg border border-[#232e48]">
+                  No interests selected. Go to Settings to add your interests.
+                </div>
               )}
             </div>
           </CardContent>
@@ -143,42 +161,72 @@ const Discovery = () => {
 
       {/* Offers list */}
       <div className="flex-1 overflow-auto">
-        {offersEnabled ? (
-          demoOffers.map((offer) => (
-            <div key={offer.id} className="p-4 border-b border-[#232e48]">
-              <div className="flex items-start">
-                <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={offer.image} />
-                  <AvatarFallback className="bg-[#1C2A41] border border-[#232e48] text-networx-light">
-                    {offer.icon}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-networx-light">{offer.sender}</h3>
-                      <Badge variant="outline" className="inline-flex items-center bg-[#1C2A41] text-networx-light border-[#232e48] text-xs mt-0.5">
-                        <Tag size={12} className="mr-1" /> {offer.category}
-                      </Badge>
+        {offersEnabled && user?.interests && user.interests.length > 0 ? (
+          <div className="space-y-0">
+            {demoOffers.map((offer, index) => (
+              <div 
+                key={offer.id} 
+                className="border-b border-[#232e48] hover:bg-[#121A2F] transition-colors duration-150 cursor-pointer group"
+              >
+                <div className="px-6 py-4 flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="h-14 w-14 rounded-lg bg-[#1C2A41] border border-[#232e48] flex items-center justify-center group-hover:border-networx-primary/30 transition-colors">
+                      {offer.icon}
                     </div>
-                    <span className="text-xs text-networx-light/50">{formatTime(offer.timestamp)}</span>
                   </div>
-                  <h4 className="font-medium mt-2 text-networx-light">{offer.title}</h4>
-                  <p className="text-sm text-networx-light mt-1">{offer.description}</p>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-4 mb-2">
+                      <div>
+                        <h3 className="font-semibold text-networx-light">
+                          {offer.sender}
+                        </h3>
+                        <Badge 
+                          variant="outline" 
+                          className="inline-flex items-center bg-[#1C2A41] text-networx-light/70 border-[#232e48] text-xs mt-1"
+                        >
+                          <Tag size={12} className="mr-1" /> {offer.category}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-networx-light/50 flex-shrink-0 whitespace-nowrap">
+                        {formatTime(offer.timestamp)}
+                      </span>
+                    </div>
+                    
+                    <h4 className="font-semibold text-networx-light leading-snug">
+                      {offer.title}
+                    </h4>
+                    <p className="text-sm text-networx-light/70 mt-1">
+                      {offer.description}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-center p-4">
-            <Tag className="h-12 w-12 text-[#2A3A57] mb-4" />
-            <h3 className="text-xl font-medium text-networx-light">Discovery is turned off</h3>
-            <p className="text-sm text-networx-light/70 mt-2 max-w-xs">
-              Enable Discovery to see personalized offers based on your interests
+            ))}
+          </div>
+        ) : offersEnabled ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <Tag className="h-16 w-16 text-networx-light/20 mb-4" />
+            <h3 className="text-xl font-semibold text-networx-light">No interests yet</h3>
+            <p className="text-sm text-networx-light/60 mt-2 max-w-xs">
+              Select your interests in Settings to start receiving personalized offers
             </p>
             <Button 
-              variant="outline" 
-              className="mt-4 bg-[#1C2A41] text-networx-light border-[#232e48] hover:bg-[#283a56]"
+              className="mt-6 btn-primary"
+              onClick={() => window.location.href = '/settings'}
+            >
+              Go to Settings
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <CheckCircle2 className="h-16 w-16 text-networx-light/20 mb-4" />
+            <h3 className="text-xl font-semibold text-networx-light">Discovery is off</h3>
+            <p className="text-sm text-networx-light/60 mt-2 max-w-xs">
+              Enable Discovery to see personalized offers from your favorite categories
+            </p>
+            <Button 
+              className="mt-6 btn-primary"
               onClick={() => setOffersEnabled(true)}
             >
               Turn on Discovery
