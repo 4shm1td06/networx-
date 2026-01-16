@@ -33,7 +33,21 @@ const QRScanner = ({ onScan, onClose }) => {
             audio.play().catch(() => {});
           }
 
-          onScan(decodedText);
+          // Extract code from URL if the scanned value is a deep link
+          // Format: https://domain.com/connect?code=ABC123
+          let codeValue = decodedText;
+          try {
+            const url = new URL(decodedText);
+            const code = url.searchParams.get("code");
+            if (code) {
+              codeValue = code; // Use just the code
+            }
+          } catch {
+            // Not a URL, use the scanned value as-is
+            codeValue = decodedText;
+          }
+
+          onScan(codeValue);
           scanner.clear().catch(() => {});
         },
         () => {}
