@@ -181,16 +181,16 @@ export default function AuthWithEmailOtp() {
   // UI
   // =========================
   return (
-    <div className="min-h-screen flex items-center justify-center bg-networx-dark p-4">
+    <div className="min-h-screen flex items-center justify-center bg-networx-dark p-3 sm:p-4 overflow-y-auto">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-networx-light mb-2">Networx</h1>
-          <p className="text-networx-light/60">Connect with your community</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-networx-light mb-2">Networx</h1>
+          <p className="text-sm sm:text-base text-networx-light/60">Connect with your community</p>
         </div>
 
         <Card className="networx-card border-[#232e48] shadow-2xl">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-bold text-center text-networx-light">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-networx-light">
               {step === "email"
                 ? "Welcome back"
                 : step === "password"
@@ -199,7 +199,7 @@ export default function AuthWithEmailOtp() {
                 ? "Verify your email"
                 : "Create your account"}
             </CardTitle>
-            <p className="text-center text-sm text-networx-light/60 mt-2">
+            <p className="text-center text-xs sm:text-sm text-networx-light/60 mt-2">
               {step === "email"
                 ? "Enter your email to get started"
                 : step === "password"
@@ -210,7 +210,7 @@ export default function AuthWithEmailOtp() {
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {step === "email" && (
               <form onSubmit={handleCheckEmail} className="space-y-4">
                 <div className="space-y-2">
@@ -219,12 +219,13 @@ export default function AuthWithEmailOtp() {
                     placeholder="your.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="input-field h-12"
+                    className="input-field h-12 sm:h-12 text-base"
                     required
+                    autoComplete="email"
                   />
                 </div>
                 <Button 
-                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  className="w-full h-12 sm:h-12 btn-primary rounded-lg font-semibold text-base"
                   disabled={loading || !email}
                 >
                   {loading ? (
@@ -246,12 +247,13 @@ export default function AuthWithEmailOtp() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-field h-12"
+                    className="input-field h-12 sm:h-12 text-base"
                     required
+                    autoComplete="current-password"
                   />
                 </div>
                 <Button 
-                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  className="w-full h-12 sm:h-12 btn-primary rounded-lg font-semibold text-base"
                   disabled={loading || !password}
                 >
                   {loading ? (
@@ -273,12 +275,13 @@ export default function AuthWithEmailOtp() {
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    className="input-field h-12 text-center text-2xl tracking-widest font-mono"
+                    className="input-field h-12 sm:h-12 text-center text-2xl sm:text-3xl tracking-widest font-mono"
                     required
+                    inputMode="numeric"
                   />
                 </div>
                 <Button 
-                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  className="w-full h-12 sm:h-12 btn-primary rounded-lg font-semibold text-base"
                   disabled={loading || otp.length !== 6}
                 >
                   {loading ? (
@@ -300,15 +303,16 @@ export default function AuthWithEmailOtp() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-field h-12"
+                    className="input-field h-12 sm:h-12 text-base"
                     required
+                    autoComplete="new-password"
                   />
                   <p className="text-xs text-networx-light/50">
                     Use at least 8 characters
                   </p>
                 </div>
                 <Button 
-                  className="w-full h-12 btn-primary rounded-lg font-semibold text-base"
+                  className="w-full h-12 sm:h-12 btn-primary rounded-lg font-semibold text-base"
                   disabled={loading || password.length < 8}
                 >
                   {loading ? (
@@ -321,7 +325,7 @@ export default function AuthWithEmailOtp() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-networx-light/50 mt-6">
+        <p className="text-center text-xs sm:text-sm text-networx-light/50 mt-4 sm:mt-6">
           By signing in, you agree to our{" "}
           <span className="text-primary cursor-pointer hover:underline">
             Terms of Service
@@ -329,16 +333,16 @@ export default function AuthWithEmailOtp() {
         </p>
 
         {/* QR Connect Option */}
-        <div className="mt-8 pt-6 border-t border-[#232e48]">
-          <p className="text-center text-sm text-networx-light/60 mb-4">
+        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-[#232e48]">
+          <p className="text-center text-xs sm:text-sm text-networx-light/60 mb-3 sm:mb-4">
             Have a connection code?
           </p>
           <Button
             onClick={() => window.location.href = '/qr-connect'}
             variant="outline"
-            className="w-full bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all flex items-center justify-center gap-2"
+            className="w-full h-12 sm:h-12 bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all flex items-center justify-center gap-2 font-semibold"
           >
-            <QrCode className="h-4 w-4" /> Connect via QR Code
+            <QrCode className="h-5 w-5" /> Connect via QR Code
           </Button>
         </div>
       </div>

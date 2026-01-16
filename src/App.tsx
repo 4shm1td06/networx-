@@ -13,6 +13,7 @@ import { ChatProvider } from "./contexts/ChatContext";
 import { UserProvider } from "./contexts/UserContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useIsMobile } from "./hooks/use-mobile";
+import { registerServiceWorker } from "./utils/notifications";
 
 // ✅ PWA Service Worker
 import { registerSW } from "virtual:pwa-register";
@@ -31,17 +32,27 @@ import DeepLink from "./pages/DeepLink";
 // =======================
 // 🔥 PWA REGISTRATION
 // =======================
-registerSW({
-  immediate: true,
+if ('serviceWorker' in navigator) {
+  registerSW({
+    immediate: true,
 
-  onOfflineReady() {
-    console.log("✅ PWA ready to work offline");
-  },
+    onOfflineReady() {
+      console.log("✅ PWA ready to work offline");
+    },
 
-  onNeedRefresh() {
-    console.log("🔄 New version available — refresh to update");
-  },
-});
+    onNeedRefresh() {
+      console.log("🔄 New version available — refresh to update");
+    },
+
+    onRegistered() {
+      console.log("✅ Service Worker registered");
+    },
+
+    onRegisterError(error) {
+      console.log("❌ Service Worker registration failed:", error);
+    },
+  });
+}
 
 // =======================
 // REACT QUERY CLIENT
@@ -55,6 +66,11 @@ const App = () => {
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone;
+
+  // ✅ Register service worker for background notifications
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   // ✅ Online / Offline detection
   useEffect(() => {
@@ -91,7 +107,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
 
-                <BrowserRouter>
+                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   {isMobile ? (
                     <MobileLayout>
                       <Routes>

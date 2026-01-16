@@ -99,9 +99,9 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
 
   if (!sidebarThreads || sidebarThreads.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center p-6">
+      <div className="flex-1 flex items-center justify-center text-center p-4 sm:p-6">
         <div>
-          <p className="text-networx-light/60 mb-2">No connections yet</p>
+          <p className="text-sm text-networx-light/60 mb-2">No connections yet</p>
           <p className="text-xs text-networx-light/40">Share your code to connect with friends</p>
         </div>
       </div>
@@ -127,17 +127,17 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
       {threadsMeta.map((t) => (
         <div
           key={t.id}
-          className={`connection-item ${activeThread?.id === t.id ? 'connection-item-active' : 'hover:bg-[#0F1628]'}`}
+          className={`connection-item ${activeThread?.id === t.id ? 'connection-item-active' : 'hover:bg-[#0F1628] active:bg-[#0F1628]'} min-h-[64px] sm:min-h-auto`}
           onClick={() => handleThreadClick(t)}
         >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 p-3 sm:p-4">
             <img
               src={t.profile || "/placeholder.svg"}
               alt={t.name}
-              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#232e48]"
+              className="w-12 h-12 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0 border border-[#232e48]"
             />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-networx-light truncate">
+              <div className="text-xs sm:text-sm font-semibold text-networx-light truncate">
                 {t.name}
               </div>
               <div className="text-xs text-networx-light/60 truncate">
@@ -147,22 +147,22 @@ const ConnectionsList: React.FC<ConnectionsListProps> = ({ onThreadClick }) => {
                     : "No messages yet")}
               </div>
             </div>
-          </div>
           
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            {t.lastMessage && (
-              <span className="text-xs text-networx-light/50">
-                {new Date(t.lastMessage.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            )}
-            {t.unreadCount > 0 && (
-              <span className="bg-networx-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
-                {t.unreadCount > 9 ? '9+' : t.unreadCount}
-              </span>
-            )}
+            <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+              {t.lastMessage && (
+                <span className="text-xs text-networx-light/50">
+                  {new Date(t.lastMessage.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
+              {t.unreadCount > 0 && (
+                <span className="bg-networx-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
+                  {t.unreadCount > 9 ? '9+' : t.unreadCount}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       ))}

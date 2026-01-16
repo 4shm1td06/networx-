@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { notifyNewMessage } from "@/utils/notifications";
 
 /* ===================== TYPES ===================== */
 
@@ -211,8 +212,30 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "dm_messages" },
-        (payload) => {
+        async (payload) => {
           const msg = payload.new as DMMessage;
+
+          // Get sender info for notification
+          const isIncomingMessage = msg.receiver_id === user.id;
+          let senderName = "Unknown";
+          let senderAvatar: string | undefined;
+
+          if (isIncomingMessage) {
+            try {
+              const { data: sender } = await supabase
+                .from("users")
+                .select("name, profile_image")
+                .eq("id", msg.sender_id)
+                .single();
+
+              if (sender) {
+                senderName = sender.name || "Unknown";
+                senderAvatar = sender.profile_image || undefined;
+              }
+            } catch (err) {
+              console.error("Error fetching sender info:", err);
+            }
+          }
 
           setSidebarThreads((prev) =>
             prev.map((t) =>
@@ -234,6 +257,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             if (msg.receiver_id === user.id) {
               markThreadAsRead(msg.thread_id);
             }
+          } else if (isIncomingMessage) {
+            // Send notification only if not in active thread
+            await notifyNewMessage(
+              senderName,
+              msg.content || "Sent a message",
+              senderAvatar,
+              msg.thread_id
+            );
           }
         }
       )

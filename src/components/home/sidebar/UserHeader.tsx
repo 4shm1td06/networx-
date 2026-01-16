@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Settings, LogOut } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 type UserData = {
@@ -91,21 +91,21 @@ export default function UserHeader({
   }
 
   return (
-    <div className="px-4 py-5 border-b border-[#232e48] bg-gradient-to-r from-[#0B1120] to-[#162039]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1">
-          <Avatar className="h-12 w-12 border-2 border-networx-primary/30 bg-[#1C2A41] flex-shrink-0">
+    <div className="px-3 sm:px-4 py-4 sm:py-5 border-b border-[#232e48] bg-gradient-to-r from-[#0B1120] to-[#162039]">
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-networx-primary/30 bg-[#1C2A41] flex-shrink-0">
             {user.profile_image ? (
               <AvatarImage src={user.profile_image} />
             ) : (
-              <AvatarFallback className="bg-networx-primary/20 text-networx-primary font-semibold">
+              <AvatarFallback className="bg-networx-primary/20 text-networx-primary font-semibold text-sm sm:text-base">
                 {(user.name ?? user.email).charAt(0).toUpperCase()}
               </AvatarFallback>
             )}
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-networx-light truncate">
+            <h2 className="text-xs sm:text-sm font-semibold text-networx-light truncate">
               {user.name ?? "User"}
             </h2>
             <p className="text-xs text-networx-light/60 truncate">
@@ -119,7 +119,7 @@ export default function UserHeader({
             variant="ghost" 
             size="icon" 
             onClick={onOpenSettings}
-            className="hover:bg-[#1C2A41] transition-colors h-9 w-9"
+            className="hover:bg-[#1C2A41] transition-colors h-9 w-9 sm:h-10 sm:w-10"
             title="Settings"
           >
             <Settings className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function UserHeader({
             variant="ghost" 
             size="icon" 
             onClick={handleLogout}
-            className="hover:bg-red-500/10 transition-colors h-9 w-9"
+            className="hover:bg-red-500/10 transition-colors h-9 w-9 sm:h-10 sm:w-10"
             title="Logout"
           >
             <LogOut className="h-4 w-4 text-red-400" />

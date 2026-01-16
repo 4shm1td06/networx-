@@ -33,7 +33,7 @@ const getDayLabel = (date: Date) => {
 };
 
 /* ===================== COMPONENT ===================== */
-const ChatView = () => {
+const ChatView = ({ onClose }: { onClose?: () => void } = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -144,30 +144,30 @@ const ChatView = () => {
     <div className="flex flex-col h-full bg-networx-dark text-networx-light">
 
       {/* HEADER */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#0B1120] to-[#162039] border-b border-[#232e48]">
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#0B1120] to-[#162039] border-b border-[#232e48] h-14 sm:h-auto">
         {isMobile && (
           <Button 
             size="icon" 
             variant="ghost" 
-            onClick={() => navigate(-1)}
-            className="hover:bg-[#1C2A41] transition-colors"
+            onClick={() => onClose ? onClose() : navigate(-1)}
+            className="hover:bg-[#1C2A41] transition-colors h-10 w-10"
           >
             <ArrowLeft size={18} />
           </Button>
         )}
 
-        <Avatar className="h-10 w-10 border border-[#232e48]">
+        <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border border-[#232e48] flex-shrink-0">
           {otherUser?.profile_image ? (
             <AvatarImage src={otherUser.profile_image} />
           ) : (
-            <AvatarFallback className="bg-networx-primary text-white font-semibold">
+            <AvatarFallback className="bg-networx-primary text-white font-semibold text-sm">
               {otherUser?.name?.[0] || "U"}
             </AvatarFallback>
           )}
         </Avatar>
 
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-networx-light">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-semibold text-networx-light truncate">
             {otherUser?.name || "Loading…"}
           </p>
           <p className={`text-xs font-medium ${isOnline ? 'text-green-400' : 'text-networx-light/60'}`}>
@@ -178,7 +178,7 @@ const ChatView = () => {
         <Button 
           size="icon" 
           variant="ghost" 
-          className="hover:bg-[#1C2A41] transition-colors"
+          className="hover:bg-[#1C2A41] transition-colors h-10 w-10 flex-shrink-0"
         >
           <Send className="h-4 w-4" />
         </Button>
@@ -186,14 +186,14 @@ const ChatView = () => {
 
       {/* MESSAGES */}
       <div
-        className="flex-1 overflow-y-auto px-6 py-6 space-y-4"
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 space-y-3 sm:space-y-4"
         onScroll={(e) => e.currentTarget.scrollTop === 0 && loadOlder()}
       >
         <AnimatePresence>
           {groupedMessages.map((item, i) =>
             item.type === "date" ? (
               <div key={i} className="message-date-separator">
-                <div className="message-date-separator-inner">
+                <div className="message-date-separator-inner text-xs sm:text-sm">
                   {getDayLabel(item.date)}
                 </div>
               </div>
@@ -210,7 +210,7 @@ const ChatView = () => {
                 }`}
               >
                 <div 
-                  className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-xl text-sm break-words ${
+                  className={`max-w-xs sm:max-w-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm break-words ${
                     item.data.sender_id === user?.id
                       ? 'chat-bubble-sent'
                       : 'chat-bubble-received'
@@ -229,7 +229,7 @@ const ChatView = () => {
               animate={{ opacity: 1 }}
               className="flex items-center gap-2"
             >
-              <div className="flex gap-1.5 p-3 bg-[#1C2A41] rounded-xl">
+              <div className="flex gap-1.5 p-2 sm:p-3 bg-[#1C2A41] rounded-xl">
                 <div className="w-2 h-2 bg-networx-light/60 rounded-full animation-pulse"></div>
                 <div className="w-2 h-2 bg-networx-light/60 rounded-full animation-pulse" style={{ animationDelay: '0.2s' }}></div>
                 <div className="w-2 h-2 bg-networx-light/60 rounded-full animation-pulse" style={{ animationDelay: '0.4s' }}></div>
@@ -244,28 +244,28 @@ const ChatView = () => {
       {/* INPUT */}
       <form
         onSubmit={handleSendMessage}
-        className="flex items-end gap-3 px-6 py-4 bg-[#0F1628] border-t border-[#232e48]"
+        className="flex items-end gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 bg-[#0F1628] border-t border-[#232e48]"
       >
         <Button 
           type="button"
           size="icon" 
           variant="ghost"
-          className="hover:bg-[#1C2A41] transition-colors flex-shrink-0"
+          className="hover:bg-[#1C2A41] transition-colors flex-shrink-0 h-10 w-10"
         >
-          <Paperclip className="h-5 w-5 text-networx-light/60" />
+          <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-networx-light/60" />
         </Button>
 
         <Input
           value={messageInput}
           onChange={(e) => handleTyping(e.target.value)}
           placeholder="Type a message…"
-          className="input-field flex-1"
+          className="input-field flex-1 h-10 sm:h-auto text-sm"
         />
         
         <Button 
           type="submit" 
           disabled={!messageInput.trim()}
-          className="btn-primary flex-shrink-0 h-10 px-4"
+          className="btn-primary flex-shrink-0 h-10 w-10 sm:h-10 sm:px-4 p-0"
           size="icon"
         >
           <Send className="h-4 w-4" />

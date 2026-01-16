@@ -169,15 +169,15 @@ const CodeCard = () => {
 
   /* -------------------- UI -------------------- */
   return (
-    <div className="p-4 bg-[#0F1628] border-b border-[#232e48]">
-      <div className="code-card p-6 space-y-4">
+    <div className="p-3 sm:p-4 bg-[#0F1628] border-b border-[#232e48]">
+      <div className="code-card p-4 sm:p-6 space-y-4">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-white">
               <MessageCircle size={20} className="text-networx-primary" />
-              <span className="font-semibold text-lg">Connection Code</span>
+              <span className="font-semibold text-base sm:text-lg">Connection Code</span>
             </div>
             <p className="text-xs text-networx-light/60 mt-1 ml-7">
               Share this code with friends to connect
@@ -199,40 +199,40 @@ const CodeCard = () => {
         </div>
 
         {/* QR or Code Display - Toggle between them */}
-        <div className="text-center space-y-3 bg-[#0F1729] rounded-lg p-5 border border-[#232e48]">
+        <div className="text-center space-y-3 bg-[#0F1729] rounded-lg p-4 sm:p-5 border border-[#232e48]">
           {!showQR ? (
             // Show Connection Code
             <>
-              <div className="text-4xl font-mono tracking-widest text-networx-primary font-bold">
+              <div className="text-3xl sm:text-4xl font-mono tracking-widest text-networx-primary font-bold break-words">
                 {currentCode?.code ?? "------"}
               </div>
 
               {currentCode && (
-                <div className="flex justify-center gap-3 text-xs text-networx-light/70 flex-wrap">
+                <div className="flex justify-center gap-2 sm:gap-3 text-xs text-networx-light/70 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" /> Expires in 10 min
                   </span>
                   <span className="flex items-center gap-1">
-                    ⚡ One-time use only
+                    ⚡ One-time use
                   </span>
                 </div>
               )}
 
-              <div className="flex justify-center gap-2 mt-4 flex-wrap">
+              <div className="flex justify-center gap-2 mt-4 flex-wrap w-full">
                 <Button 
                   size="sm" 
                   variant="outline" 
                   onClick={handleCopy}
-                  className="bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all"
+                  className="flex-1 h-10 sm:h-9 bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all text-sm"
                 >
-                  <Copy className="h-4 w-4 mr-1" /> Copy Code
+                  <Copy className="h-4 w-4 mr-1" /> Copy
                 </Button>
 
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowQR(true)}
-                  className="bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all"
+                  className="flex-1 h-10 sm:h-9 bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all text-sm"
                 >
                   <QrCode className="h-4 w-4 mr-1" /> Show QR
                 </Button>
@@ -240,23 +240,23 @@ const CodeCard = () => {
             </>
           ) : (
             // Show QR Code
-            <div className="flex flex-col items-center gap-3 py-2">
-              <div className="bg-white p-3 rounded-lg shadow-lg border-4 border-networx-primary/20">
+            <div className="flex flex-col items-center gap-3 py-3 sm:py-2">
+              <div className="bg-white p-2 sm:p-3 rounded-lg shadow-lg border-4 border-networx-primary/20">
                 <QRCodeCanvas 
                   value={getQRValue()} 
-                  size={180} 
+                  size={160} 
                   level="H"
                   includeMargin={true}
                 />
               </div>
               <p className="text-xs text-networx-light/60 text-center max-w-xs">
-                Share this QR code with friends to connect instantly
+                Share this QR code to connect
               </p>
 
               <div className="flex justify-center gap-2 mt-3 flex-wrap w-full">
                 <Button
                   size="sm"
-                  className="flex-1 bg-networx-primary hover:bg-networx-primary/90 transition-all text-white gap-2"
+                  className="flex-1 h-10 sm:h-9 bg-networx-primary hover:bg-networx-primary/90 transition-all text-white gap-2 text-sm"
                   onClick={async () => {
                     try {
                       await navigator.share({
@@ -276,9 +276,9 @@ const CodeCard = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowQR(false)}
-                  className="bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all"
+                  className="flex-1 h-10 sm:h-9 bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all text-sm"
                 >
-                  <QrCode className="h-4 w-4 mr-1" /> Hide QR
+                  <QrCode className="h-4 w-4 mr-1" /> Hide
                 </Button>
               </div>
             </div>
@@ -289,7 +289,7 @@ const CodeCard = () => {
         <Button
           onClick={() => setShowScanner(true)}
           variant="outline"
-          className="w-full bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all"
+          className="w-full h-10 sm:h-9 bg-[#1C2A41] hover:bg-[#283a56] border-[#232e48] text-networx-light transition-all font-semibold"
         >
           <QrCode className="h-4 w-4 mr-2" /> Scan QR Code
         </Button>
